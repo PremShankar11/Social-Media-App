@@ -17,6 +17,8 @@ This file is now the live tracker for foundation work.
 - Auth and profile feature foundation added
 - Friend request feature foundation added
 - Social media style home UI added
+- Feed service and text post creation added
+- Media selection, preview, and upload flow added
 - Type-check and lint verified
 - Supabase project still needs SQL migrations applied
 
@@ -49,10 +51,10 @@ This file is now the live tracker for foundation work.
 - [x] Profile flow implemented
 - [x] Friend search/request flow implemented
 - [x] Social home page shell implemented
+- [x] Post creation flow implemented
+- [x] Feed flow implemented
+- [x] Media upload flow implemented
 - [ ] Supabase SQL migrations applied
-- [ ] Post creation flow implemented
-- [ ] Media upload flow implemented
-- [ ] Feed flow implemented
 
 ### Decision log
 - Chose `Vite + React + TypeScript` for the fastest clean MVP setup.
@@ -66,6 +68,9 @@ This file is now the live tracker for foundation work.
 - Added local Supabase frontend configuration using the provided project URL and publishable key.
 - Implemented the first real feature slice: auth, profile setup, user search, friend requests, and accepted-friends listing.
 - Added a Supabase setup note so the SQL files can be applied before end-to-end testing.
+- Replaced placeholder home-only posting logic with a dedicated feed hook and post service.
+- Kept the current UI structure and layered the feed/post feature work underneath it instead of redesigning the layout again.
+- Added media selection and preview in the Home composer, plus Supabase storage upload support for image/video posts.
 
 ## 1. Project Summary
 

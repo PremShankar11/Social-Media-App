@@ -35,3 +35,55 @@ export type FriendshipRecord = {
   user_two_id: string
   created_at: string
 }
+
+export type PostRecord = {
+  id: string
+  author_id: string
+  caption: string
+  visibility: 'friends'
+  created_at: string
+  updated_at: string
+}
+
+export type PostInsert = {
+  author_id: string
+  caption: string
+  visibility: 'friends'
+}
+
+export type FeedPost = {
+  id: string
+  author: string
+  handle: string
+  time: string
+  text: string
+  likes: number
+  comments: number
+  media?: FeedPostMedia | null
+  isLocalOnly?: boolean
+}
+
+export type PostMediaRecord = {
+  id: string
+  post_id: string
+  storage_path: string
+  media_type: 'image' | 'video'
+  width: number | null
+  height: number | null
+  duration_seconds: number | null
+  created_at: string
+}
+
+export type PostMediaInsert = {
+  post_id: string
+  storage_path: string
+  media_type: 'image' | 'video'
+  width?: number | null
+  height?: number | null
+  duration_seconds?: number | null
+}
+
+export type FeedPostMedia = {
+  type: 'image' | 'video'
+  url: string
+}
