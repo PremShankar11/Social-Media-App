@@ -1,0 +1,24 @@
+# Root workspace ignores
+.DS_Store
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# App artifacts
+app/node_modules/
+app/dist/
+app/dist-ssr/
+
+# Supabase local artifacts
+supabase/.temp/
