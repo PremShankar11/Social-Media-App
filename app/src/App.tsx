@@ -2,12 +2,16 @@ import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AuthForms } from './features/auth/auth-forms'
 import { FriendsPanel } from './features/friends/friends-panel'
+import { GraphPage } from './features/graph/graph-page'
+import { FriendProfilePage } from './features/profile/friend-profile-page'
 import { ProfileSetupForm } from './features/profile/profile-setup-form'
 import { useAuth } from './hooks/use-auth'
 import { useFeed } from './hooks/use-feed'
+import { useConnections } from './hooks/use-connections'
+import { useProfile } from './hooks/use-profile'
 import type { FeedPost } from './types/domain'
 
-type AppView = 'home' | 'connections' | 'profile'
+type AppView = 'home' | 'connections' | 'graph' | 'profile' | 'friend-profile'
 
 function HomeIcon({ active }: { active: boolean }) {
   return (
@@ -25,6 +29,15 @@ function PeopleIcon({ active }: { active: boolean }) {
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+function GraphIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#f97316' : '#a1a1aa'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="3" /><circle cx="5" cy="19" r="3" /><circle cx="19" cy="19" r="3" />
+      <line x1="12" y1="8" x2="5" y2="16" /><line x1="12" y1="8" x2="19" y2="16" /><line x1="5" y1="19" x2="19" y2="19" />
     </svg>
   )
 }
@@ -59,7 +72,24 @@ function App() {
     userId: user?.id ?? null,
     profile,
   })
+  const { incomingPendingCount } = useConnections({
+    currentUserId: user?.id ?? null,
+    enabled: Boolean(user && profile),
+  })
+  const {
+    friendCount,
+    postCount,
+    userPosts,
+    busy: profileBusy,
+    message: profileMessage,
+    deletePost: handleDeletePost,
+    refreshProfile,
+  } = useProfile({
+    userId: user?.id ?? null,
+    enabled: Boolean(user && profile),
+  })
   const [currentView, setCurrentView] = useState<AppView>('home')
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null)
   const [postText, setPostText] = useState('')
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null)
   const [selectedMediaPreview, setSelectedMediaPreview] = useState<string | null>(null)
@@ -87,6 +117,7 @@ function App() {
   const navItems: { key: AppView; label: string; icon: (active: boolean) => ReactNode }[] = [
     { key: 'home', label: 'Home', icon: (a) => <HomeIcon active={a} /> },
     { key: 'connections', label: 'Connections', icon: (a) => <PeopleIcon active={a} /> },
+    { key: 'graph', label: 'Graph', icon: (a) => <GraphIcon active={a} /> },
     { key: 'profile', label: 'Profile', icon: (a) => <UserIcon active={a} /> },
   ]
 
@@ -114,6 +145,11 @@ function App() {
               >
                 {item.icon(isActive)}
                 {item.label}
+                {item.key === 'connections' && incomingPendingCount > 0 ? (
+                  <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-white">
+                    {incomingPendingCount}
+                  </span>
+                ) : null}
               </button>
             )
           })}
@@ -168,6 +204,10 @@ function App() {
             <ConnectionsPage
               canUseFriends={Boolean(user && profile)}
               currentUserId={user?.id ?? null}
+              onOpenFriendProfile={(friendId) => {
+                setSelectedFriendId(friendId)
+                setCurrentView('friend-profile')
+              }}
             />
           ) : null}
 
@@ -178,9 +218,41 @@ function App() {
               profile={profile}
               session={Boolean(session)}
               userEmail={user?.email ?? null}
+              friendCount={friendCount}
+              postCount={postCount}
+              userPosts={userPosts}
+              profileBusy={profileBusy}
+              profileMessage={profileMessage}
               onSignIn={signIn}
               onSignUp={signUp}
               onSaveProfile={saveProfile}
+              onDeletePost={handleDeletePost}
+              onRefreshProfile={refreshProfile}
+            />
+          ) : null}
+
+          {currentView === 'graph' && user?.id ? (
+            <GraphPage
+              userId={user.id}
+              onOpenFriendProfile={(friendId) => {
+                setSelectedFriendId(friendId)
+                setCurrentView('friend-profile')
+              }}
+            />
+          ) : null}
+
+          {currentView === 'friend-profile' && user?.id && selectedFriendId ? (
+            <FriendProfilePage
+              currentUserId={user.id}
+              friendId={selectedFriendId}
+              onBack={() => {
+                setCurrentView('connections')
+                setSelectedFriendId(null)
+              }}
+              onOpenFriend={(friendId) => {
+                setSelectedFriendId(friendId)
+                setCurrentView('friend-profile')
+              }}
             />
           ) : null}
         </div>
@@ -393,9 +465,11 @@ function HomePage({
 function ConnectionsPage({
   canUseFriends,
   currentUserId,
+  onOpenFriendProfile,
 }: {
   canUseFriends: boolean
   currentUserId: string | null
+  onOpenFriendProfile: (friendId: string) => void
 }) {
   if (!canUseFriends || !currentUserId) {
     return (
@@ -413,7 +487,10 @@ function ConnectionsPage({
   return (
     <div className="space-y-4">
       <h2 className="font-display text-2xl font-semibold text-white">Connections</h2>
-      <FriendsPanel currentUserId={currentUserId} />
+      <FriendsPanel
+        currentUserId={currentUserId}
+        onOpenFriendProfile={onOpenFriendProfile}
+      />
     </div>
   )
 }
@@ -424,6 +501,11 @@ type ProfilePageProps = {
   profile: Parameters<typeof ProfileSetupForm>[0]['profile']
   session: boolean
   userEmail: string | null
+  friendCount: number
+  postCount: number
+  userPosts: FeedPost[]
+  profileBusy: boolean
+  profileMessage: string | null
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string) => Promise<void>
   onSaveProfile: (values: {
@@ -431,6 +513,8 @@ type ProfilePageProps = {
     displayName: string
     bio: string
   }) => Promise<void>
+  onDeletePost: (postId: string) => Promise<void>
+  onRefreshProfile: () => Promise<void>
 }
 
 function ProfilePage({
@@ -439,16 +523,35 @@ function ProfilePage({
   profile,
   session,
   userEmail,
+  friendCount,
+  postCount,
+  userPosts,
+  profileBusy,
+  profileMessage,
   onSignIn,
   onSignUp,
   onSaveProfile,
+  onDeletePost,
 }: ProfilePageProps) {
+  const [showEdit, setShowEdit] = useState(false)
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null)
+
+  async function handleDelete(postId: string) {
+    const confirmed = window.confirm('Delete this post? This cannot be undone.')
+    if (!confirmed) return
+
+    setDeletingPostId(postId)
+    await onDeletePost(postId)
+    setDeletingPostId(null)
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="font-display text-2xl font-semibold text-white">Profile</h2>
 
       {session ? (
         <>
+          {/* Profile header card */}
           <div className="rounded-2xl border border-border bg-surface-raised p-6">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-lg font-bold text-white">
@@ -469,16 +572,86 @@ function ProfilePage({
             ) : null}
           </div>
 
+          {/* Stats row */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-border bg-surface-raised p-5">
+              <p className="text-2xl font-bold text-white">{friendCount}</p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Friends</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface-raised p-5">
+              <p className="text-2xl font-bold text-white">{postCount}</p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Posts</p>
+            </div>
+          </div>
+
+          {/* Edit toggle + collapsible edit section */}
           <div className="rounded-2xl border border-border bg-surface-raised p-6">
-            <h3 className="mb-4 text-base font-semibold text-white">Edit profile</h3>
-            <ProfileSetupForm
-              key={profile?.id ?? 'profile-setup'}
-              busy={busy}
-              profile={profile}
-              onSubmit={async ({ username, displayName, bio }) => {
-                await onSaveProfile({ username, displayName, bio })
-              }}
-            />
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-white">Profile details</h3>
+              <button
+                type="button"
+                onClick={() => setShowEdit((v) => !v)}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-accent hover:text-accent"
+              >
+                {showEdit ? 'Cancel editing' : 'Edit profile'}
+              </button>
+            </div>
+
+            {showEdit ? (
+              <div className="mt-5 border-t border-border pt-5">
+                <ProfileSetupForm
+                  key={profile?.id ?? 'profile-setup'}
+                  busy={busy}
+                  profile={profile}
+                  onSubmit={async ({ username, displayName, bio }) => {
+                    await onSaveProfile({ username, displayName, bio })
+                    setShowEdit(false)
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {/* User posts section */}
+          <div className="rounded-2xl border border-border bg-surface-raised p-6">
+            <h3 className="mb-4 text-base font-semibold text-white">Your posts</h3>
+
+            {userPosts.length === 0 ? (
+              <p className="text-sm text-zinc-600">You haven't posted anything yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {userPosts.map((post) => (
+                  <article
+                    key={post.id}
+                    className="rounded-xl border border-border bg-surface p-4"
+                  >
+                    <p className="text-sm leading-relaxed text-zinc-300">{post.text}</p>
+
+                    {post.media ? (
+                      <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+                        {post.media.type === 'video' ? (
+                          <video src={post.media.url} controls className="max-h-60 w-full object-cover" />
+                        ) : (
+                          <img src={post.media.url} alt="Post media" className="max-h-60 w-full object-cover" />
+                        )}
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-zinc-600">{post.time}</p>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(post.id)}
+                        disabled={profileBusy || deletingPostId === post.id}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-rose-500/50 hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {deletingPostId === post.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </>
       ) : (
@@ -507,9 +680,9 @@ function ProfilePage({
         </div>
       )}
 
-      {message ? (
+      {(message || profileMessage) ? (
         <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm text-accent">
-          {message}
+          {message || profileMessage}
         </div>
       ) : null}
     </div>

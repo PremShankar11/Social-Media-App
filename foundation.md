@@ -19,6 +19,9 @@ This file is now the live tracker for foundation work.
 - Social media style home UI added
 - Feed service and text post creation added
 - Media selection, preview, and upload flow added
+- Friend acceptance persistence fixed for current Supabase schema
+- Storage bucket SQL setup added for post media
+- Friend profile view feature implemented from Kiro spec
 - Type-check and lint verified
 - Supabase project still needs SQL migrations applied
 
@@ -71,6 +74,9 @@ This file is now the live tracker for foundation work.
 - Replaced placeholder home-only posting logic with a dedicated feed hook and post service.
 - Kept the current UI structure and layered the feed/post feature work underneath it instead of redesigning the layout again.
 - Added media selection and preview in the Home composer, plus Supabase storage upload support for image/video posts.
+- Replaced friendship upsert with explicit existence-check + insert so accept-request works against the current database uniqueness setup.
+- Added a dedicated storage migration for the `post-media` bucket and its storage policies.
+- Added a read-only friend profile page with posts, statistics, back navigation, and navigation between friends.
 
 ## 1. Project Summary
 

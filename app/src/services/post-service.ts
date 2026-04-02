@@ -157,3 +157,86 @@ export async function createPostMediaRecord(values: PostMediaInsert) {
   const result = await supabase.from('post_media').insert(values).select('id').single()
   return result
 }
+
+export async function fetchUserPosts(userId: string) {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('id, author_id, caption, visibility, created_at, updated_at')
+    .eq('author_id', userId)
+    .order('created_at', { ascending: false })
+    .returns<PostRecord[]>()
+
+  if (error || !data) {
+    return { data: null, error }
+  }
+
+  const profilesResult = await fetchProfilesByIds([userId])
+  const profile = profilesResult.data?.[0] ?? null
+
+  const mediaResult = await fetchPostMediaByPostIds(data.map((post) => post.id))
+
+  const mediaByPostId = new Map<string, FeedPostMedia>()
+
+  if (!mediaResult.error && mediaResult.data) {
+    for (const media of mediaResult.data) {
+      if (!mediaByPostId.has(media.post_id)) {
+        const mediaUrl = await buildMediaUrl(media.storage_path)
+        mediaByPostId.set(media.post_id, {
+          type: media.media_type,
+          url: mediaUrl,
+        })
+      }
+    }
+  }
+
+  return {
+    data: data.map((post) => ({
+      ...mapPostToFeedItem(post, profile),
+      media: mediaByPostId.get(post.id) ?? null,
+    })),
+    error: null,
+  }
+}
+
+export async function fetchFriendCount(userId: string) {
+  // Fetch friendships where user is either user_one_id or user_two_id
+  // Use two separate queries to bypass RLS filtering issues
+  const [result1, result2] = await Promise.all([
+    supabase
+      .from('friendships')
+      .select('id')
+      .eq('user_one_id', userId)
+      .returns<FriendshipRecord[]>(),
+    supabase
+      .from('friendships')
+      .select('id')
+      .eq('user_two_id', userId)
+      .returns<FriendshipRecord[]>(),
+  ])
+
+  const count1 = result1.data?.length ?? 0
+  const count2 = result2.data?.length ?? 0
+  const totalCount = count1 + count2
+  
+  console.log(`[DEBUG] fetchFriendCount(${userId}): count1=${count1}, count2=${count2}, total=${totalCount}`)
+
+  return { count: totalCount, error: result1.error || result2.error }
+}
+
+export async function deletePost(postId: string) {
+  // 1. Fetch associated media records
+  const mediaResult = await fetchPostMediaByPostIds([postId])
+
+  if (!mediaResult.error && mediaResult.data && mediaResult.data.length > 0) {
+    // 2. Remove files from storage
+    const storagePaths = mediaResult.data.map((m) => m.storage_path)
+    await supabase.storage.from('post-media').remove(storagePaths)
+
+    // 3. Delete post_media rows
+    await supabase.from('post_media').delete().eq('post_id', postId)
+  }
+
+  // 4. Delete the post itself
+  const result = await supabase.from('posts').delete().eq('id', postId).select('id').single()
+  return result
+}

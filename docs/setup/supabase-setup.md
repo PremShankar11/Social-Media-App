@@ -6,6 +6,7 @@ To make the current app features work, run these SQL files in your Supabase SQL 
 
 1. `supabase/migrations/20260402_initial_schema.sql`
 2. `supabase/migrations/20260402_rls_and_triggers.sql`
+3. `supabase/migrations/20260402_storage_setup.sql`
 
 ## Why this matters
 
@@ -16,6 +17,7 @@ The frontend now includes:
 - friend request sending
 - friend request acceptance and rejection
 - accepted friends listing
+- media upload and media feed rendering
 
 These features depend on the tables and RLS policies defined in the migration files.
 

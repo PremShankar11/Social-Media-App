@@ -67,6 +67,7 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
     }
 
     setBusy(false)
+    return error ? starterPosts : (data ?? [])
   }, [])
 
   useEffect(() => {
@@ -79,7 +80,11 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
     }
   }, [refreshFeed])
 
-  const posts = useMemo(() => [...localPosts, ...serverPosts], [localPosts, serverPosts])
+  const posts = useMemo(() => {
+    const localIds = new Set(localPosts.map((post) => post.id))
+    const remainingServerPosts = serverPosts.filter((post) => !localIds.has(post.id))
+    return [...localPosts, ...remainingServerPosts]
+  }, [localPosts, serverPosts])
 
   async function createPostWithOptionalMedia(caption: string, mediaFile?: File | null) {
     const trimmedCaption = caption.trim()
@@ -127,18 +132,31 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
 
     if (error || !data) {
       setMessage(
-        'Post added locally. Run the Supabase SQL migrations to save posts permanently.',
+        error?.message ??
+          'Post added locally. Run the Supabase SQL migrations to save posts permanently.',
       )
       setBusy(false)
       return
     }
 
     if (mediaFile) {
+      setLocalPosts((current) =>
+        current.map((post) =>
+          post.id === optimisticPostId
+            ? {
+                ...post,
+                id: data.id,
+              }
+            : post,
+        ),
+      )
+
       const uploadResult = await uploadPostMedia(mediaFile, data.id)
 
       if (uploadResult.error || !uploadResult.data) {
         setMessage(
-          'Post text saved, but media upload is still using local preview because Supabase storage is not fully ready yet.',
+          uploadResult.error?.message ??
+            'Post text saved, but media upload is still using local preview because Supabase storage is not fully ready yet.',
         )
         setBusy(false)
         return
@@ -152,12 +170,30 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
 
         if (mediaInsertResult.error) {
           setMessage(
-            'Post text saved, but media metadata could not be stored yet. Keeping the local preview visible for now.',
+            mediaInsertResult.error.message,
           )
           setBusy(false)
           return
         }
       }
+
+      const refreshedPosts = await refreshFeed()
+      const persistedPostHasMedia = refreshedPosts.some(
+        (post) => post.id === data.id && post.media,
+      )
+
+      if (!persistedPostHasMedia) {
+        setMessage(
+          'Media post is staying in local preview mode until the stored media is fully retrievable.',
+        )
+        setBusy(false)
+        return
+      }
+
+      setLocalPosts((current) => current.filter((post) => post.id !== data.id))
+      setMessage(null)
+      setBusy(false)
+      return
     }
 
     setLocalPosts((current) =>

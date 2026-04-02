@@ -87,3 +87,53 @@ export type FeedPostMedia = {
   type: 'image' | 'video'
   url: string
 }
+
+/* ── Graph Visualization ── */
+
+export type GraphNode = {
+  id: string
+  label: string
+  displayName: string
+  username: string
+  avatarUrl?: string
+  friendCount: number
+  mutualConnections: number
+  communityId: number
+  x?: number
+  y?: number
+  isRoot: boolean
+  isDirectFriend: boolean
+}
+
+export type GraphEdge = {
+  source: string
+  target: string
+  weight: number
+  isDirectConnection: boolean
+}
+
+export type Community = {
+  id: number
+  members: string[]
+  size: number
+  density: number
+  color: string
+}
+
+export type NetworkMetrics = {
+  totalFriends: number
+  totalSecondaryFriends: number
+  networkDensity: number
+  averageDegree: number
+  clusteringCoefficient: number
+  networkDiameter: number
+  interconnectednessScore: number
+  communityCount: number
+}
+
+export type PathFindingResult = {
+  path: string[]
+  length: number
+  users: GraphNode[]
+}
+

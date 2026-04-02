@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase'
 import type {
   FriendRequestRecord,
   FriendshipRecord,
+  ProfileRecord,
   PublicProfile,
 } from '../types/domain'
 
@@ -25,6 +26,45 @@ async function fetchProfilesByIds(ids: string[]) {
   return result
 }
 
+export async function getFriendProfile(
+  currentUserId: string,
+  friendId: string,
+) {
+  // Check if users are friends using the unique constraint pattern
+  const friendshipCheck = await supabase
+    .from('friendships')
+    .select('id')
+    .eq('user_one_id', currentUserId < friendId ? currentUserId : friendId)
+    .eq('user_two_id', currentUserId < friendId ? friendId : currentUserId)
+    .maybeSingle()
+
+  if (friendshipCheck.error) {
+    return { data: null, error: friendshipCheck.error }
+  }
+
+  if (!friendshipCheck.data) {
+    return {
+      data: null,
+      error: new Error('This user is no longer in your friends list.'),
+    }
+  }
+
+  const profileResult = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', friendId)
+    .maybeSingle<ProfileRecord>()
+
+  if (profileResult.error || !profileResult.data) {
+    return {
+      data: null,
+      error: profileResult.error ?? new Error('Friend profile not found.'),
+    }
+  }
+
+  return { data: profileResult.data, error: null }
+}
+
 export async function searchProfiles(query: string, currentUserId: string) {
   const result = await supabase
     .from('profiles')
@@ -38,16 +78,27 @@ export async function searchProfiles(query: string, currentUserId: string) {
 }
 
 export async function fetchFriendRequests(currentUserId: string) {
-  const { data, error } = await supabase
-    .from('friend_requests')
-    .select('id, sender_id, receiver_id, status, created_at, updated_at')
-    .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
-    .order('created_at', { ascending: false })
-    .returns<FriendRequestRecord[]>()
+  // Split .or() into two separate queries (Supabase .or() can be unreliable)
+  const [result1, result2] = await Promise.all([
+    supabase
+      .from('friend_requests')
+      .select('id, sender_id, receiver_id, status, created_at, updated_at')
+      .eq('sender_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .returns<FriendRequestRecord[]>(),
+    supabase
+      .from('friend_requests')
+      .select('id, sender_id, receiver_id, status, created_at, updated_at')
+      .eq('receiver_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .returns<FriendRequestRecord[]>(),
+  ])
 
-  if (error || !data) {
-    return { data: null, error }
-  }
+  if (result1.error) return { data: null, error: result1.error }
+  if (result2.error) return { data: null, error: result2.error }
+
+  const data = [...(result1.data ?? []), ...(result2.data ?? [])]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const counterpartIds = Array.from(
     new Set(
@@ -83,16 +134,27 @@ export async function fetchFriendRequests(currentUserId: string) {
 }
 
 export async function fetchFriends(currentUserId: string) {
-  const { data, error } = await supabase
-    .from('friendships')
-    .select('id, user_one_id, user_two_id, created_at')
-    .or(`user_one_id.eq.${currentUserId},user_two_id.eq.${currentUserId}`)
-    .order('created_at', { ascending: false })
-    .returns<FriendshipRecord[]>()
+  // Split .or() into two separate queries
+  const [result1, result2] = await Promise.all([
+    supabase
+      .from('friendships')
+      .select('id, user_one_id, user_two_id, created_at')
+      .eq('user_one_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .returns<FriendshipRecord[]>(),
+    supabase
+      .from('friendships')
+      .select('id, user_one_id, user_two_id, created_at')
+      .eq('user_two_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .returns<FriendshipRecord[]>(),
+  ])
 
-  if (error || !data) {
-    return { data: null, error }
-  }
+  if (result1.error) return { data: null, error: result1.error }
+  if (result2.error) return { data: null, error: result2.error }
+
+  const data = [...(result1.data ?? []), ...(result2.data ?? [])]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const friendIds = Array.from(
     new Set(
@@ -152,6 +214,9 @@ export async function respondToFriendRequest(
   receiverId: string,
   status: 'accepted' | 'rejected',
 ) {
+
+  console.log('Updating request:', requestId, 'to status:', status) // ADD THIS
+
   const updateResult = await supabase
     .from('friend_requests')
     .update({ status })
@@ -159,18 +224,30 @@ export async function respondToFriendRequest(
     .select('id')
     .single()
 
+  console.log('Update result:', updateResult) // ADD THIS
+  
   if (updateResult.error || status !== 'accepted') {
     return updateResult
   }
 
   const friendship = sortFriendPair(senderId, receiverId)
 
-  const friendshipResult = await supabase
+  const existingFriendshipResult = await supabase
     .from('friendships')
-    .upsert(friendship, {
-      onConflict: 'user_one_id,user_two_id',
-      ignoreDuplicates: true,
-    })
+    .select('id')
+    .eq('user_one_id', friendship.user_one_id)
+    .eq('user_two_id', friendship.user_two_id)
+    .maybeSingle()
+
+  if (existingFriendshipResult.error) {
+    return existingFriendshipResult
+  }
+
+  if (existingFriendshipResult.data) {
+    return { data: { id: requestId, userId: currentUserId }, error: null }
+  }
+
+  const friendshipResult = await supabase.from('friendships').insert(friendship)
 
   if (friendshipResult.error) {
     return friendshipResult
