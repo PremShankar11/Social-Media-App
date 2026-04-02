@@ -53,14 +53,17 @@ export type PostInsert = {
 
 export type FeedPost = {
   id: string
+  author_id: string
   author: string
   handle: string
   time: string
   text: string
   likes: number
   comments: number
+  user_liked: boolean
   media?: FeedPostMedia | null
   isLocalOnly?: boolean
+  created_at?: string
 }
 
 export type PostMediaRecord = {
@@ -86,6 +89,33 @@ export type PostMediaInsert = {
 export type FeedPostMedia = {
   type: 'image' | 'video'
   url: string
+}
+
+/* ── Post Engagement ── */
+
+export type Comment = {
+  id: string
+  post_id: string
+  author_id: string
+  author_name: string
+  author_username: string
+  text: string
+  likes_count: number
+  replies_count: number
+  user_liked: boolean
+  created_at: string
+}
+
+export type Reply = {
+  id: string
+  comment_id: string
+  author_id: string
+  author_name: string
+  author_username: string
+  text: string
+  likes_count: number
+  user_liked: boolean
+  created_at: string
 }
 
 /* ── Graph Visualization ── */

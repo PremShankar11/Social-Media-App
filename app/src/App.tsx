@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { LandingPage } from './features/auth/landing-page'
+import { PostEngagement } from './features/engagement/post-engagement'
 import { FriendsPanel } from './features/friends/friends-panel'
 import { GraphPage } from './features/graph/graph-page'
 import { FriendProfilePage } from './features/profile/friend-profile-page'
@@ -68,6 +69,7 @@ function App() {
     message: feedMessage,
     posts,
     createPostWithOptionalMedia,
+    updatePostLocally,
   } = useFeed({
     userId: user?.id ?? null,
     profile,
@@ -196,6 +198,7 @@ function App() {
         <div className="w-full max-w-2xl animate-fade-in px-6 py-8">
           {currentView === 'home' ? (
             <HomePage
+              currentUserId={user.id}
               displayName={displayName}
               feedBusy={feedBusy}
               feedMessage={feedMessage}
@@ -207,6 +210,7 @@ function App() {
               setSelectedMediaPreview={setSelectedMediaPreview}
               posts={posts}
               onCreatePost={handleCreatePost}
+              onUpdatePost={updatePostLocally}
             />
           ) : null}
 
@@ -268,6 +272,7 @@ function App() {
 }
 
 type HomePageProps = {
+  currentUserId: string
   displayName: string
   feedBusy: boolean
   feedMessage: string | null
@@ -279,9 +284,11 @@ type HomePageProps = {
   setSelectedMediaPreview: (value: string | null) => void
   posts: FeedPost[]
   onCreatePost: () => Promise<void>
+  onUpdatePost: (postId: string, updates: Partial<FeedPost>) => void
 }
 
 function HomePage({
+  currentUserId,
   displayName,
   feedBusy,
   feedMessage,
@@ -293,6 +300,7 @@ function HomePage({
   setSelectedMediaPreview,
   posts,
   onCreatePost,
+  onUpdatePost,
 }: HomePageProps) {
   const mediaInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -415,49 +423,48 @@ function HomePage({
           posts.map((post) => (
             <article
               key={post.id}
-              className="animate-slide-up rounded-2xl border border-border bg-surface-raised p-5 transition-colors hover:border-border-hover"
+              className="animate-slide-up overflow-hidden rounded-2xl border border-border bg-surface-raised transition-colors hover:border-border-hover"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-overlay text-sm font-semibold text-zinc-300">
-                  {post.author.slice(0, 1)}
+              <div className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-overlay text-sm font-semibold text-zinc-300">
+                    {post.author.slice(0, 1)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{post.author}</p>
+                    <p className="text-xs text-zinc-500">
+                      {post.handle} · {post.time}
+                      {post.isLocalOnly ? ' · local' : ''}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{post.author}</p>
-                  <p className="text-xs text-zinc-500">
-                    {post.handle} · {post.time}
-                    {post.isLocalOnly ? ' · local' : ''}
-                  </p>
-                </div>
+
+                <p className="mt-3 text-sm leading-relaxed text-zinc-300">{post.text}</p>
+
+                {post.media ? (
+                  <div className="mt-4 overflow-hidden rounded-xl border border-border">
+                    {post.media.type === 'video' ? (
+                      <video
+                        src={post.media.url}
+                        controls
+                        className="max-h-[28rem] w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={post.media.url}
+                        alt={`${post.author} post media`}
+                        className="max-h-[28rem] w-full object-cover"
+                      />
+                    )}
+                  </div>
+                ) : null}
               </div>
 
-              <p className="mt-3 text-sm leading-relaxed text-zinc-300">{post.text}</p>
-
-              {post.media ? (
-                <div className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
-                  {post.media.type === 'video' ? (
-                    <video
-                      src={post.media.url}
-                      controls
-                      className="max-h-[28rem] w-full object-cover"
-                    />
-                  ) : (
-                    <img
-                      src={post.media.url}
-                      alt={`${post.author} post media`}
-                      className="max-h-[28rem] w-full object-cover"
-                    />
-                  )}
-                </div>
-              ) : null}
-
-              <div className="mt-4 flex gap-4 text-xs text-zinc-500">
-                <button type="button" className="flex items-center gap-1 transition hover:text-accent">
-                  <HeartIcon /> {post.likes}
-                </button>
-                <button type="button" className="flex items-center gap-1 transition hover:text-accent">
-                  <CommentIcon /> {post.comments}
-                </button>
-              </div>
+              <PostEngagement
+                post={post}
+                currentUserId={currentUserId}
+                onPostUpdated={onUpdatePost}
+              />
             </article>
           ))
         )}
@@ -609,7 +616,7 @@ function ProfilePage({
                 <p className="text-sm leading-relaxed text-zinc-300">{post.text}</p>
 
                 {post.media ? (
-                  <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+                  <div className="mt-3 overflow-hidden rounded-lg border border-border">
                     {post.media.type === 'video' ? (
                       <video src={post.media.url} controls className="max-h-60 w-full object-cover" />
                     ) : (
@@ -644,20 +651,6 @@ function ProfilePage({
   )
 }
 
-function HeartIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  )
-}
 
-function CommentIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  )
-}
 
 export default App

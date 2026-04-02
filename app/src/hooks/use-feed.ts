@@ -2,33 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createPost,
   createPostMediaRecord,
-  fetchFeedPosts,
   uploadPostMedia,
 } from '../services/post-service'
+import { fetchFriendsFeedPosts } from '../services/engagement-service'
 import type { FeedPost, FeedPostMedia, ProfileRecord } from '../types/domain'
-
-const starterPosts: FeedPost[] = [
-  {
-    id: 'seed-1',
-    author: 'Anaya Sharma',
-    handle: '@anaya',
-    time: '2h ago',
-    text:
-      'Went out for chai after class and realized this is exactly the kind of simple, real moment this app should be for.',
-    likes: 24,
-    comments: 6,
-  },
-  {
-    id: 'seed-2',
-    author: 'Rishi Mehta',
-    handle: '@rishi.codes',
-    time: '5h ago',
-    text:
-      'Trying to keep my feed small, calm, and useful. Close friends, real updates, and no algorithmic pressure.',
-    likes: 17,
-    comments: 3,
-  },
-]
 
 type UseFeedArgs = {
   userId: string | null
@@ -43,6 +20,8 @@ type UseFeedResult = {
     caption: string,
     mediaFile?: File | null,
   ) => Promise<void>
+  refreshFeed: () => Promise<void>
+  updatePostLocally: (postId: string, updates: Partial<FeedPost>) => void
 }
 
 export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
@@ -52,23 +31,22 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
   const [message, setMessage] = useState<string | null>(null)
 
   const refreshFeed = useCallback(async () => {
+    if (!userId) return
+
     setBusy(true)
 
-    const { data, error } = await fetchFeedPosts()
+    const { data, error } = await fetchFriendsFeedPosts(userId)
 
     if (error) {
-      setMessage(
-        'Feed is using starter data right now. Apply the Supabase SQL migrations to load real posts.',
-      )
-      setServerPosts(starterPosts)
+      setMessage('Unable to load feed right now.')
+      setServerPosts([])
     } else {
-      setServerPosts(data)
+      setServerPosts(data ?? [])
       setMessage(null)
     }
 
     setBusy(false)
-    return error ? starterPosts : (data ?? [])
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -85,6 +63,19 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
     const remainingServerPosts = serverPosts.filter((post) => !localIds.has(post.id))
     return [...localPosts, ...remainingServerPosts]
   }, [localPosts, serverPosts])
+
+  function updatePostLocally(postId: string, updates: Partial<FeedPost>) {
+    setServerPosts((current) =>
+      current.map((post) =>
+        post.id === postId ? { ...post, ...updates } : post,
+      ),
+    )
+    setLocalPosts((current) =>
+      current.map((post) =>
+        post.id === postId ? { ...post, ...updates } : post,
+      ),
+    )
+  }
 
   async function createPostWithOptionalMedia(caption: string, mediaFile?: File | null) {
     const trimmedCaption = caption.trim()
@@ -111,12 +102,14 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
 
     const optimisticPost: FeedPost = {
       id: optimisticPostId,
+      author_id: userId,
       author: profile.display_name,
       handle: `@${profile.username}`,
       time: 'Now',
       text: trimmedCaption,
       likes: 0,
       comments: 0,
+      user_liked: false,
       media: localMedia,
       isLocalOnly: true,
     }
@@ -132,8 +125,7 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
 
     if (error || !data) {
       setMessage(
-        error?.message ??
-          'Post added locally. Run the Supabase SQL migrations to save posts permanently.',
+        error?.message ?? 'Failed to create post.',
       )
       setBusy(false)
       return
@@ -143,10 +135,7 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
       setLocalPosts((current) =>
         current.map((post) =>
           post.id === optimisticPostId
-            ? {
-                ...post,
-                id: data.id,
-              }
+            ? { ...post, id: data.id }
             : post,
         ),
       )
@@ -154,50 +143,29 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
       const uploadResult = await uploadPostMedia(mediaFile, data.id)
 
       if (uploadResult.error || !uploadResult.data) {
-        setMessage(
-          uploadResult.error?.message ??
-            'Post text saved, but media upload is still using local preview because Supabase storage is not fully ready yet.',
-        )
-        setBusy(false)
-        return
-      } else {
-        const mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image'
-        const mediaInsertResult = await createPostMediaRecord({
-          post_id: data.id,
-          storage_path: uploadResult.data.path,
-          media_type: mediaType,
-        })
-
-        if (mediaInsertResult.error) {
-          setMessage(
-            mediaInsertResult.error.message,
-          )
-          setBusy(false)
-          return
-        }
-      }
-
-      const refreshedPosts = await refreshFeed()
-      const persistedPostHasMedia = refreshedPosts.some(
-        (post) => post.id === data.id && post.media,
-      )
-
-      if (!persistedPostHasMedia) {
-        setMessage(
-          'Media post is staying in local preview mode until the stored media is fully retrievable.',
-        )
+        setMessage(uploadResult.error?.message ?? 'Media upload failed.')
         setBusy(false)
         return
       }
 
-      setLocalPosts((current) => current.filter((post) => post.id !== data.id))
-      setMessage(null)
-      setBusy(false)
-      return
+      const mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image'
+      const mediaInsertResult = await createPostMediaRecord({
+        post_id: data.id,
+        storage_path: uploadResult.data.path,
+        media_type: mediaType,
+      })
+
+      if (mediaInsertResult.error) {
+        setMessage(mediaInsertResult.error.message)
+        setBusy(false)
+        return
+      }
     }
 
     setLocalPosts((current) =>
-      current.filter((post) => post.id !== optimisticPostId),
+      current.filter(
+        (post) => post.id !== optimisticPostId && post.id !== data.id,
+      ),
     )
     await refreshFeed()
     setMessage(null)
@@ -209,5 +177,7 @@ export function useFeed({ userId, profile }: UseFeedArgs): UseFeedResult {
     message,
     posts,
     createPostWithOptionalMedia,
+    refreshFeed,
+    updatePostLocally,
   }
 }

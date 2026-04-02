@@ -47,7 +47,7 @@ export function FriendPostsSection({
           <p className="mt-3 text-sm leading-relaxed text-zinc-300">{post.text}</p>
 
           {post.media ? (
-            <div className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
+            <div className="mt-4 overflow-hidden rounded-xl border border-border">
               {post.media.type === 'video' ? (
                 <video
                   src={post.media.url}

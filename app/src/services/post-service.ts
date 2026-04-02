@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase'
 import type {
   FeedPost,
   FeedPostMedia,
+  FriendshipRecord,
   PostMediaInsert,
   PostMediaRecord,
   PostInsert,
@@ -27,13 +28,16 @@ async function fetchProfilesByIds(ids: string[]) {
 function mapPostToFeedItem(post: PostRecord, profile?: PublicProfile | null): FeedPost {
   return {
     id: post.id,
+    author_id: post.author_id,
     author: profile?.display_name ?? 'Unknown user',
     handle: profile?.username ? `@${profile.username}` : '@unknown',
     time: formatRelativeTime(post.created_at),
     text: post.caption,
     likes: 0,
     comments: 0,
+    user_liked: false,
     media: null,
+    created_at: post.created_at,
   }
 }
 
@@ -52,14 +56,6 @@ async function fetchPostMediaByPostIds(postIds: string[]) {
 }
 
 async function buildMediaUrl(storagePath: string) {
-  const signedUrlResult = await supabase.storage
-    .from('post-media')
-    .createSignedUrl(storagePath, 60 * 60)
-
-  if (!signedUrlResult.error && signedUrlResult.data?.signedUrl) {
-    return signedUrlResult.data.signedUrl
-  }
-
   const { data } = supabase.storage.from('post-media').getPublicUrl(storagePath)
   return data.publicUrl
 }
