@@ -2,7 +2,7 @@
 
 Friends-first social app focused on real connections instead of addictive engagement patterns.
 
-## Approved stack
+## Tech stack
 
 - `Vite`
 - `React`
