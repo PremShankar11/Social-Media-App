@@ -38,8 +38,8 @@ export function FriendsPanel({
   return (
     <div className="space-y-6">
       {/* Search */}
-      <div className="rounded-2xl border border-border bg-surface-raised p-5">
-        <h3 className="mb-3 text-sm font-semibold text-white">Find people</h3>
+      <div className="card p-6">
+        <h3 className="mb-3 text-sm font-bold text-text-primary">Find people</h3>
         <div className="flex gap-2">
           <input
             value={query}
@@ -49,14 +49,14 @@ export function FriendsPanel({
                 void search(query)
               }
             }}
-            className="flex-1 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-accent/50"
+            className="input-base py-2.5"
             placeholder="Search by username or name"
           />
           <button
             type="button"
             onClick={() => void search(query)}
             disabled={busy}
-            className="shrink-0 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary shrink-0 px-5 py-2.5"
           >
             Search
           </button>
@@ -76,7 +76,7 @@ export function FriendsPanel({
             ))}
           </div>
         ) : hasSearched ? (
-          <div className="mt-4 rounded-xl border border-dashed border-border bg-surface p-4 text-sm text-zinc-500">
+          <div className="mt-4 rounded-xl border border-dashed border-border bg-surface p-4 text-sm text-text-muted">
             No matching people found yet.
           </div>
         ) : null}
@@ -84,40 +84,40 @@ export function FriendsPanel({
 
       {/* Status message */}
       {message && (
-        <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-2.5 text-sm text-accent">
+        <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-2.5 text-sm font-medium text-accent">
           {message}
         </div>
       )}
 
       {/* Pending requests */}
-      <div className="rounded-2xl border border-border bg-surface-raised p-5">
-        <h3 className="mb-3 text-sm font-semibold text-white">
+      <div className="card p-6">
+        <h3 className="mb-3 text-sm font-bold text-text-primary">
           Pending requests{' '}
           {incomingCount > 0 && (
-            <span className="ml-1 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">
+            <span className="ml-1 rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
               {incomingCount}
             </span>
           )}
         </h3>
 
         {pendingRequests.length === 0 ? (
-          <p className="text-sm text-zinc-600">No pending requests.</p>
+          <p className="text-sm text-text-muted">No pending requests.</p>
         ) : (
           <div className="space-y-2">
             {pendingRequests.map((request) => (
               <div
                 key={request.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-surface p-3"
+                className="flex items-center justify-between rounded-xl border border-border bg-surface p-3.5 transition-all hover:border-border-hover"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-overlay text-xs font-semibold text-zinc-300">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondary/15 to-accent/15 text-xs font-bold text-secondary">
                     {(request.counterpart?.display_name ?? 'U').slice(0, 1)}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-semibold text-text-primary">
                       {request.counterpart?.display_name ?? 'Unknown'}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-text-muted">
                       {request.direction === 'incoming' ? 'Wants to connect' : 'Sent by you'}
                     </p>
                   </div>
@@ -135,7 +135,7 @@ export function FriendsPanel({
                         )
                       }
                       disabled={busy}
-                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:opacity-40"
+                      className="btn-primary px-3 py-1.5 text-xs"
                     >
                       Accept
                     </button>
@@ -150,7 +150,7 @@ export function FriendsPanel({
                         )
                       }
                       disabled={busy}
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-rose-500/50 hover:text-rose-400 disabled:opacity-40"
+                      className="btn-secondary px-3 py-1.5 text-xs"
                     >
                       Decline
                     </button>
@@ -163,40 +163,40 @@ export function FriendsPanel({
       </div>
 
       {/* Friends list */}
-      <div className="rounded-2xl border border-border bg-surface-raised p-5">
-        <h3 className="mb-3 text-sm font-semibold text-white">
+      <div className="card p-6">
+        <h3 className="mb-3 text-sm font-bold text-text-primary">
           Friends{' '}
           {friends.length > 0 && (
-            <span className="ml-1 text-xs text-zinc-500">{friends.length}</span>
+            <span className="ml-1 text-xs text-text-muted">{friends.length}</span>
           )}
         </h3>
 
         {friends.length === 0 ? (
-          <p className="text-sm text-zinc-600">No friends yet. Start searching above!</p>
+          <p className="text-sm text-text-muted">No friends yet. Start searching above!</p>
         ) : (
           <div className="space-y-2">
             {friends.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3"
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3.5 transition-all hover:border-border-hover"
               >
                 <button
                   type="button"
                   onClick={() => onOpenFriendProfile?.(entry.friend.id)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-overlay text-xs font-semibold text-zinc-300">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-xs font-bold text-accent">
                     {entry.friend.display_name.slice(0, 1)}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-white">{entry.friend.display_name}</p>
-                    <p className="truncate text-xs text-zinc-500">@{entry.friend.username}</p>
+                    <p className="truncate text-sm font-semibold text-text-primary">{entry.friend.display_name}</p>
+                    <p className="truncate text-xs text-text-muted">@{entry.friend.username}</p>
                   </div>
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenFriendProfile?.(entry.friend.id)}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-accent hover:text-accent"
+                  className="btn-secondary px-3 py-1.5 text-xs"
                 >
                   View
                 </button>
@@ -237,21 +237,21 @@ function SearchResultRow({
   }
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-3">
+    <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-3.5 transition-all hover:border-border-hover">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-overlay text-xs font-semibold text-zinc-300">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-xs font-bold text-accent">
           {profile.display_name.slice(0, 1)}
         </div>
         <div>
-          <p className="text-sm font-medium text-white">{profile.display_name}</p>
-          <p className="text-xs text-zinc-500">@{profile.username}</p>
+          <p className="text-sm font-semibold text-text-primary">{profile.display_name}</p>
+          <p className="text-xs text-text-muted">@{profile.username}</p>
         </div>
       </div>
       <button
         type="button"
         onClick={onAdd}
         disabled={disabled}
-        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+        className="btn-secondary px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-40"
       >
         {buttonLabel}
       </button>

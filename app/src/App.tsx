@@ -140,10 +140,17 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-surface">
-      <nav className="fixed left-0 top-0 flex h-screen w-[220px] flex-col border-r border-border bg-surface-raised px-3 py-6">
+      <nav className="fixed left-0 top-0 flex h-screen w-[240px] flex-col bg-surface-raised px-4 py-7 shadow-sidebar">
         <div className="mb-10 px-3">
-          <h1 className="font-display text-xl font-bold tracking-tight text-white">Circle</h1>
-          <p className="mt-0.5 text-xs text-zinc-500">Authentic social</p>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-[#ff5500] text-sm font-bold text-white shadow-glow">
+              C
+            </div>
+            <div>
+              <h1 className="font-display text-lg font-bold tracking-tight text-text-primary">Circle</h1>
+              <p className="-mt-0.5 text-[11px] text-text-muted">Authentic social</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -154,12 +161,15 @@ function App() {
                 key={item.key}
                 type="button"
                 onClick={() => setCurrentView(item.key)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                className={`nav-item ${
                   isActive
-                    ? 'bg-accent-soft text-accent'
-                    : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
+                    ? 'nav-item-active'
+                    : 'text-text-secondary'
                 }`}
               >
+                {isActive ? (
+                  <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent transition-all" />
+                ) : null}
                 {item.icon(isActive)}
                 {item.label}
                 {item.key === 'connections' && incomingPendingCount > 0 ? (
@@ -173,20 +183,20 @@ function App() {
         </div>
 
         <div className="mt-auto">
-          <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="rounded-2xl bg-surface-overlay p-3.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-semibold text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-bold text-white shadow-sm">
                 {displayName.slice(0, 1)}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">{displayName}</p>
-                {username ? <p className="truncate text-xs text-zinc-500">{username}</p> : null}
+                <p className="truncate text-sm font-semibold text-text-primary">{displayName}</p>
+                {username ? <p className="truncate text-xs text-text-muted">{username}</p> : null}
               </div>
             </div>
             <button
               type="button"
               onClick={() => void handleSignOut()}
-              className="mt-3 w-full rounded-lg border border-border py-2 text-xs font-medium text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
+              className="mt-3 w-full rounded-xl border border-border bg-surface py-2 text-xs font-medium text-text-muted transition-all hover:border-border-hover hover:text-text-primary"
             >
               Sign out
             </button>
@@ -194,8 +204,8 @@ function App() {
         </div>
       </nav>
 
-      <main className="ml-[220px] flex flex-1 justify-center">
-        <div className="w-full max-w-2xl animate-fade-in px-6 py-8">
+      <main className="ml-[240px] flex flex-1 justify-center">
+        <div className="w-full max-w-[800px] animate-fade-in px-8 py-10">
           {currentView === 'home' ? (
             <HomePage
               currentUserId={user.id}
@@ -328,25 +338,25 @@ function HomePage({
     mediaInputRef.current?.click()
   }
 
-  return (
-    <div className="space-y-6">
-      <h2 className="font-display text-2xl font-semibold text-white">Home</h2>
+   return (
+    <div className="space-y-8">
+      <h2 className="font-display text-2xl font-bold text-text-primary">Home</h2>
 
-      <div className="rounded-2xl border border-border bg-surface-raised p-5">
-        <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-semibold text-white">
+      <div className="card p-6">
+        <div className="flex gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-bold text-white shadow-sm">
             {displayName.slice(0, 1)}
           </div>
           <div className="min-w-0 flex-1">
             <textarea
               value={postText}
               onChange={(event) => setPostText(event.target.value)}
-              className="min-h-[80px] w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-accent/50"
+              className="input-base min-h-[90px] resize-none"
               placeholder="What's on your mind?"
               disabled={feedBusy}
             />
             {selectedMediaPreview ? (
-              <div className="mt-3 overflow-hidden rounded-xl border border-border bg-surface">
+              <div className="mt-3 overflow-hidden rounded-xl border border-border">
                 {selectedMedia?.type.startsWith('video/') ? (
                   <video
                     src={selectedMediaPreview}
@@ -364,7 +374,7 @@ function HomePage({
             ) : null}
             <div className="mt-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-xs text-zinc-600">Visible to friends only</span>
+                <span className="text-xs text-text-muted">Visible to friends only</span>
                 <input
                   ref={mediaInputRef}
                   type="file"
@@ -377,7 +387,7 @@ function HomePage({
                   type="button"
                   onClick={openMediaPicker}
                   disabled={feedBusy}
-                  className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-zinc-400 transition hover:border-border-hover hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="btn-secondary px-3 py-2 text-xs"
                 >
                   Add media
                 </button>
@@ -385,7 +395,7 @@ function HomePage({
                   <button
                     type="button"
                     onClick={() => handleMediaChange(null)}
-                    className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-zinc-400 transition hover:border-border-hover hover:text-zinc-200"
+                    className="btn-secondary px-3 py-2 text-xs"
                   >
                     Remove
                   </button>
@@ -395,7 +405,7 @@ function HomePage({
                 type="button"
                 onClick={() => void onCreatePost()}
                 disabled={(!postText.trim() && !selectedMedia) || feedBusy}
-                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-primary px-5 py-2.5 text-sm"
               >
                 {feedBusy ? 'Posting...' : 'Post'}
               </button>
@@ -405,17 +415,15 @@ function HomePage({
       </div>
 
       {feedMessage ? (
-        <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm text-accent">
+        <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
           {feedMessage}
         </div>
       ) : null}
 
-      <div className="border-t border-border" />
-
-      <div className="space-y-4">
+      <div className="space-y-5">
         {posts.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface-raised p-8 text-center">
-            <p className="text-sm text-zinc-400">
+          <div className="card p-10 text-center" style={{ transform: 'none' }}>
+            <p className="text-sm text-text-muted">
               No posts yet. Create the first update for your circle.
             </p>
           </div>
@@ -423,23 +431,23 @@ function HomePage({
           posts.map((post) => (
             <article
               key={post.id}
-              className="animate-slide-up overflow-hidden rounded-2xl border border-border bg-surface-raised transition-colors hover:border-border-hover"
+              className="card animate-slide-up overflow-hidden"
             >
-              <div className="p-5">
+              <div className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-overlay text-sm font-semibold text-zinc-300">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-sm font-bold text-accent">
                     {post.author.slice(0, 1)}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{post.author}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-sm font-semibold text-text-primary">{post.author}</p>
+                    <p className="text-xs text-text-muted">
                       {post.handle} · {post.time}
                       {post.isLocalOnly ? ' · local' : ''}
                     </p>
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm leading-relaxed text-zinc-300">{post.text}</p>
+                <p className="mt-4 text-sm leading-relaxed text-text-secondary">{post.text}</p>
 
                 {post.media ? (
                   <div className="mt-4 overflow-hidden rounded-xl border border-border">
@@ -481,8 +489,8 @@ function ConnectionsPage({
   currentUserId: string
 }) {
   return (
-    <div className="space-y-4">
-      <h2 className="font-display text-2xl font-semibold text-white">Connections</h2>
+    <div className="space-y-6">
+      <h2 className="font-display text-2xl font-bold text-text-primary">Connections</h2>
       <FriendsPanel
         currentUserId={currentUserId}
         onOpenFriendProfile={onOpenFriendProfile}
@@ -536,57 +544,60 @@ function ProfilePage({
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="font-display text-2xl font-semibold text-white">Profile</h2>
+    <div className="space-y-8">
+      <h2 className="font-display text-2xl font-bold text-text-primary">Profile</h2>
 
       {/* Profile header card */}
-      <div className="rounded-2xl border border-border bg-surface-raised p-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-lg font-bold text-white">
-            {(profile?.display_name ?? 'U').slice(0, 1)}
+      <div className="card overflow-hidden">
+        <div className="h-20 bg-gradient-to-r from-accent via-secondary to-[#ff5500]" />
+        <div className="p-6">
+          <div className="-mt-14 flex items-end gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-secondary text-xl font-bold text-white shadow-glow-accent ring-4 ring-surface-raised">
+              {(profile?.display_name ?? 'U').slice(0, 1)}
+            </div>
+            <div className="mb-1">
+              <p className="text-lg font-bold text-text-primary">
+                {profile?.display_name ?? 'Set up your profile'}
+              </p>
+              {profile?.username ? (
+                <p className="text-sm text-text-muted">@{profile.username}</p>
+              ) : null}
+            </div>
           </div>
-          <div>
-            <p className="text-lg font-semibold text-white">
-              {profile?.display_name ?? 'Set up your profile'}
-            </p>
-            {profile?.username ? (
-              <p className="text-sm text-zinc-500">@{profile.username}</p>
-            ) : null}
-            <p className="mt-0.5 text-xs text-zinc-600">{userEmail}</p>
-          </div>
+          {profile?.bio ? (
+            <p className="mt-4 text-sm leading-relaxed text-text-secondary">{profile.bio}</p>
+          ) : null}
+          <p className="mt-2 text-xs text-text-muted">{userEmail}</p>
         </div>
-        {profile?.bio ? (
-          <p className="mt-4 text-sm leading-relaxed text-zinc-400">{profile.bio}</p>
-        ) : null}
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-border bg-surface-raised p-5">
-          <p className="text-2xl font-bold text-white">{friendCount}</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Friends</p>
+      <div className="grid grid-cols-2 gap-5">
+        <div className="card p-6 text-center">
+          <p className="text-3xl font-bold text-text-primary">{friendCount}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-text-muted">Friends</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface-raised p-5">
-          <p className="text-2xl font-bold text-white">{postCount}</p>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Posts</p>
+        <div className="card p-6 text-center">
+          <p className="text-3xl font-bold text-text-primary">{postCount}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-text-muted">Posts</p>
         </div>
       </div>
 
       {/* Edit toggle + collapsible edit section */}
-      <div className="rounded-2xl border border-border bg-surface-raised p-6">
+      <div className="card p-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-white">Profile details</h3>
+          <h3 className="text-base font-bold text-text-primary">Profile details</h3>
           <button
             type="button"
             onClick={() => setShowEdit((v) => !v)}
-            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-accent hover:text-accent"
+            className="btn-secondary px-4 py-2 text-xs"
           >
             {showEdit ? 'Cancel editing' : 'Edit profile'}
           </button>
         </div>
 
         {showEdit ? (
-          <div className="mt-5 border-t border-border pt-5">
+          <div className="mt-6 border-t border-border pt-6">
             <ProfileSetupForm
               key={profile?.id ?? 'profile-setup'}
               busy={busy}
@@ -601,19 +612,19 @@ function ProfilePage({
       </div>
 
       {/* User posts section */}
-      <div className="rounded-2xl border border-border bg-surface-raised p-6">
-        <h3 className="mb-4 text-base font-semibold text-white">Your posts</h3>
+      <div className="card p-6">
+        <h3 className="mb-5 text-base font-bold text-text-primary">Your posts</h3>
 
         {userPosts.length === 0 ? (
-          <p className="text-sm text-zinc-600">You haven't posted anything yet.</p>
+          <p className="text-sm text-text-muted">You haven't posted anything yet.</p>
         ) : (
           <div className="space-y-4">
             {userPosts.map((post) => (
               <article
                 key={post.id}
-                className="rounded-xl border border-border bg-surface p-4"
+                className="rounded-xl border border-border bg-surface p-5 transition-all hover:border-border-hover"
               >
-                <p className="text-sm leading-relaxed text-zinc-300">{post.text}</p>
+                <p className="text-sm leading-relaxed text-text-secondary">{post.text}</p>
 
                 {post.media ? (
                   <div className="mt-3 overflow-hidden rounded-lg border border-border">
@@ -625,13 +636,13 @@ function ProfilePage({
                   </div>
                 ) : null}
 
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-xs text-zinc-600">{post.time}</p>
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-xs text-text-muted">{post.time}</p>
                   <button
                     type="button"
                     onClick={() => void handleDelete(post.id)}
                     disabled={profileBusy || deletingPostId === post.id}
-                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-rose-500/50 hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-xl border border-border bg-surface-raised px-3 py-1.5 text-xs font-medium text-text-muted transition hover:border-rose-500/30 hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {deletingPostId === post.id ? 'Deleting...' : 'Delete'}
                   </button>
@@ -643,7 +654,7 @@ function ProfilePage({
       </div>
 
       {(message || profileMessage) ? (
-        <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm text-accent">
+        <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
           {message || profileMessage}
         </div>
       ) : null}

@@ -7,8 +7,8 @@
     font-family: 'Inter', system-ui, sans-serif;
     line-height: 1.5;
     font-weight: 400;
-    color: #e4e4e7;
-    background-color: #0f0f11;
+    color: #f0f0f4;
+    background-color: #0f0f17;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -26,7 +26,7 @@
     margin: 0;
   }
 
-  /* Custom scrollbar */
+  /* Scrollbar — thin & dark */
   ::-webkit-scrollbar {
     width: 6px;
   }
@@ -34,10 +34,94 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+@layer components {
+  /* ── Card ── */
+  .card {
+    @apply rounded-2xl bg-surface-raised shadow-card;
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .card:hover {
+    @apply shadow-card-hover;
+    transform: translateY(-2px);
+  }
+
+  /* ── Glass Card ── */
+  .glass {
+    backdrop-filter: blur(20px) saturate(1.4);
+    background: rgba(26, 26, 36, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  /* ── Input ── */
+  .input-base {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-text-primary outline-none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .input-base::placeholder {
+    @apply text-text-muted;
+  }
+  .input-base:focus {
+    border-color: rgba(255, 122, 24, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 122, 24, 0.15), 0 0 20px rgba(255, 122, 24, 0.08);
+  }
+
+  /* ── Primary Button ── */
+  .btn-primary {
+    @apply rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white;
+    transition: all 0.2s ease;
+  }
+  .btn-primary:hover {
+    @apply bg-accent-hover;
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 4px 20px rgba(255, 122, 24, 0.35);
+  }
+  .btn-primary:active {
+    transform: translateY(0) scale(1);
+  }
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-40;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ── Secondary Button ── */
+  .btn-secondary {
+    @apply rounded-xl border border-border bg-surface-raised px-5 py-3 text-sm font-semibold text-text-secondary;
+    transition: all 0.2s ease;
+  }
+  .btn-secondary:hover {
+    @apply border-border-hover text-text-primary;
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+
+  /* ── Nav Item ── */
+  .nav-item {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium;
+    transition: all 0.2s ease;
+  }
+  .nav-item:hover {
+    @apply bg-surface-overlay text-text-primary;
+    transform: translateX(3px);
+  }
+  .nav-item-active {
+    @apply bg-accent-soft text-accent;
+  }
+  .nav-item-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent;
   }
 }

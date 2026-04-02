@@ -30,7 +30,6 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
     if (likeBusy) return
     setLikeBusy(true)
 
-    // Optimistic update
     const newLiked = !post.user_liked
     onPostUpdated(post.id, {
       user_liked: newLiked,
@@ -39,7 +38,6 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
 
     const { error } = await togglePostLike(post.id, currentUserId, post.user_liked)
     if (error) {
-      // Revert
       onPostUpdated(post.id, {
         user_liked: post.user_liked,
         likes: post.likes,
@@ -69,7 +67,6 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
     const { data, error } = await createComment(post.id, currentUserId, trimmed)
 
     if (!error && data) {
-      // Re-fetch comments to get full data
       const { data: updated } = await fetchPostComments(post.id, currentUserId)
       setComments(updated ?? [])
       setCommentText('')
@@ -111,15 +108,15 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
   return (
     <div>
       {/* Engagement bar */}
-      <div className="flex items-center gap-4 border-t border-border px-4 py-2.5">
+      <div className="flex items-center gap-5 border-t border-border px-6 py-3">
         <button
           type="button"
           onClick={() => void handleToggleLike()}
           disabled={likeBusy}
-          className="group flex items-center gap-1.5 text-xs transition"
+          className="group flex items-center gap-1.5 text-xs transition-all duration-200"
         >
           <HeartIcon filled={post.user_liked} />
-          <span className={post.user_liked ? 'font-semibold text-rose-400' : 'text-zinc-500 group-hover:text-zinc-300'}>
+          <span className={post.user_liked ? 'font-semibold text-rose-400' : 'text-text-muted group-hover:text-text-secondary'}>
             {post.likes}
           </span>
         </button>
@@ -127,7 +124,7 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
         <button
           type="button"
           onClick={() => void handleToggleComments()}
-          className="group flex items-center gap-1.5 text-xs text-zinc-500 transition hover:text-zinc-300"
+          className="group flex items-center gap-1.5 text-xs text-text-muted transition-all duration-200 hover:text-text-secondary"
         >
           <CommentIcon />
           <span>{post.comments}</span>
@@ -136,13 +133,13 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
 
       {/* Comment section */}
       {showComments ? (
-        <div className="border-t border-border px-4 py-3">
+        <div className="border-t border-border px-6 py-4">
           {commentsBusy && comments.length === 0 ? (
-            <p className="text-xs text-zinc-600">Loading comments…</p>
+            <p className="text-xs text-text-muted animate-pulse-soft">Loading comments…</p>
           ) : comments.length === 0 ? (
-            <p className="text-xs text-zinc-600">No comments yet.</p>
+            <p className="text-xs text-text-muted">No comments yet. Be the first!</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {comments.map((comment) => (
                 <CommentItem
                   key={comment.id}
@@ -156,7 +153,7 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
           )}
 
           {/* Comment input */}
-          <div className="mt-3 flex gap-2">
+          <div className="mt-4 flex gap-2">
             <input
               type="text"
               value={commentText}
@@ -168,14 +165,14 @@ export function PostEngagement({ post, currentUserId, onPostUpdated }: PostEngag
                 }
               }}
               placeholder="Write a comment…"
-              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-white placeholder:text-zinc-600 outline-none transition focus:border-accent/50"
+              className="input-base py-2.5 text-xs"
               disabled={commentsBusy}
             />
             <button
               type="button"
               onClick={() => void handleAddComment()}
               disabled={!commentText.trim() || commentsBusy}
-              className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-primary rounded-xl px-4 py-2.5 text-xs"
             >
               Post
             </button>
@@ -264,30 +261,30 @@ function CommentItem({
 
   return (
     <div>
-      <div className="flex items-start gap-2.5">
+      <div className="flex items-start gap-3">
         {/* Avatar */}
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-bold text-white">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondary/20 to-accent/20 text-[11px] font-bold text-secondary">
           {comment.author_name.slice(0, 1)}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="text-xs font-semibold text-white">{comment.author_name}</span>
-            <span className="text-[10px] text-zinc-600">
+            <span className="text-xs font-semibold text-text-primary">{comment.author_name}</span>
+            <span className="text-[10px] text-text-muted">
               {formatRelativeTime(comment.created_at)}
             </span>
           </div>
-          <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">{comment.text}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">{comment.text}</p>
 
           {/* Comment actions */}
-          <div className="mt-1.5 flex items-center gap-3">
+          <div className="mt-2 flex items-center gap-3">
             <button
               type="button"
               onClick={onToggleLike}
-              className="flex items-center gap-1 text-[10px] transition"
+              className="flex items-center gap-1 text-[10px] transition-all duration-200"
             >
               <HeartIcon filled={comment.user_liked} size={12} />
-              <span className={comment.user_liked ? 'font-semibold text-rose-400' : 'text-zinc-600 hover:text-zinc-400'}>
+              <span className={comment.user_liked ? 'font-semibold text-rose-400' : 'text-text-muted hover:text-text-secondary'}>
                 {comment.likes_count}
               </span>
             </button>
@@ -295,7 +292,7 @@ function CommentItem({
             <button
               type="button"
               onClick={() => setShowReplyInput((v) => !v)}
-              className="text-[10px] text-zinc-600 transition hover:text-zinc-400"
+              className="text-[10px] font-medium text-text-muted transition hover:text-accent"
             >
               Reply
             </button>
@@ -304,7 +301,7 @@ function CommentItem({
               <button
                 type="button"
                 onClick={() => void handleToggleReplies()}
-                className="text-[10px] text-accent transition hover:text-accent-hover"
+                className="text-[10px] font-medium text-accent transition hover:text-accent-hover"
               >
                 {showReplies ? 'Hide' : `View ${comment.replies_count}`} {comment.replies_count === 1 ? 'reply' : 'replies'}
               </button>
@@ -314,7 +311,7 @@ function CommentItem({
               <button
                 type="button"
                 onClick={onDelete}
-                className="text-[10px] text-zinc-700 transition hover:text-rose-400"
+                className="text-[10px] text-text-muted transition hover:text-rose-400"
               >
                 Delete
               </button>
@@ -325,7 +322,7 @@ function CommentItem({
 
       {/* Reply input */}
       {showReplyInput ? (
-        <div className="ml-9 mt-2 flex gap-2">
+        <div className="ml-11 mt-2 flex gap-2">
           <input
             type="text"
             value={replyText}
@@ -337,14 +334,14 @@ function CommentItem({
               }
             }}
             placeholder={`Reply to ${comment.author_name}…`}
-            className="flex-1 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[11px] text-white placeholder:text-zinc-600 outline-none transition focus:border-accent/50"
+            className="input-base py-2 text-[11px]"
             disabled={repliesBusy}
           />
           <button
             type="button"
             onClick={() => void handleAddReply()}
             disabled={!replyText.trim() || repliesBusy}
-            className="rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn-primary rounded-xl px-3 py-2 text-[11px]"
           >
             Reply
           </button>
@@ -353,9 +350,9 @@ function CommentItem({
 
       {/* Replies list */}
       {showReplies ? (
-        <div className="ml-9 mt-2 space-y-2 border-l border-border pl-3">
+        <div className="ml-11 mt-3 space-y-2.5 border-l-2 border-surface-muted pl-4">
           {repliesBusy && replies.length === 0 ? (
-            <p className="text-[10px] text-zinc-600">Loading replies…</p>
+            <p className="text-[10px] text-text-muted animate-pulse-soft">Loading replies…</p>
           ) : (
             replies.map((reply) => (
               <ReplyItem
@@ -387,28 +384,28 @@ function ReplyItem({
   onDelete: () => void
 }) {
   return (
-    <div className="flex items-start gap-2">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-[9px] font-bold text-white">
+    <div className="flex items-start gap-2.5">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-muted text-[9px] font-bold text-text-secondary">
         {reply.author_name.slice(0, 1)}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-[11px] font-semibold text-white">{reply.author_name}</span>
-          <span className="text-[10px] text-zinc-600">
+          <span className="text-[11px] font-semibold text-text-primary">{reply.author_name}</span>
+          <span className="text-[10px] text-text-muted">
             {formatRelativeTime(reply.created_at)}
           </span>
         </div>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-400">{reply.text}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-text-secondary">{reply.text}</p>
 
-        <div className="mt-1 flex items-center gap-3">
+        <div className="mt-1.5 flex items-center gap-3">
           <button
             type="button"
             onClick={onToggleLike}
-            className="flex items-center gap-1 text-[10px] transition"
+            className="flex items-center gap-1 text-[10px] transition-all duration-200"
           >
             <HeartIcon filled={reply.user_liked} size={11} />
-            <span className={reply.user_liked ? 'font-semibold text-rose-400' : 'text-zinc-600 hover:text-zinc-400'}>
+            <span className={reply.user_liked ? 'font-semibold text-rose-400' : 'text-text-muted hover:text-text-secondary'}>
               {reply.likes_count}
             </span>
           </button>
@@ -417,7 +414,7 @@ function ReplyItem({
             <button
               type="button"
               onClick={onDelete}
-              className="text-[10px] text-zinc-700 transition hover:text-rose-400"
+              className="text-[10px] text-text-muted transition hover:text-rose-400"
             >
               Delete
             </button>
@@ -439,7 +436,7 @@ function HeartIcon({ filled, size = 14 }: { filled: boolean; size?: number }) {
     )
   }
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#606078" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   )

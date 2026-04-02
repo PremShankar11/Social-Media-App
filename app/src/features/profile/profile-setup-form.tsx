@@ -51,49 +51,49 @@ export function ProfileSetupForm({
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-zinc-400" htmlFor="username">
+        <label className="text-xs font-semibold text-text-secondary" htmlFor="username">
           Username
         </label>
         <input
           id="username"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
-          className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-accent/50"
+          className="input-base"
           placeholder="friends_only"
           autoComplete="username"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-zinc-400" htmlFor="displayName">
+        <label className="text-xs font-semibold text-text-secondary" htmlFor="displayName">
           Display name
         </label>
         <input
           id="displayName"
           value={displayName}
           onChange={(event) => setDisplayName(event.target.value)}
-          className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-accent/50"
+          className="input-base"
           placeholder="Your name"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-zinc-400" htmlFor="bio">
+        <label className="text-xs font-semibold text-text-secondary" htmlFor="bio">
           Bio
         </label>
         <textarea
           id="bio"
           value={bio}
           onChange={(event) => setBio(event.target.value)}
-          className="min-h-[80px] w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-white outline-none transition-colors focus:border-accent/50 resize-none"
+          className="input-base min-h-[100px] resize-none"
           placeholder="A short intro for your friends."
         />
       </div>
 
       {error && (
-        <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+        <p className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-4 py-2.5 text-xs font-medium text-rose-400">
           {error}
         </p>
       )}
@@ -101,7 +101,7 @@ export function ProfileSetupForm({
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white transition-all hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+        className="btn-primary w-full"
       >
         {busy ? 'Saving...' : profile ? 'Update profile' : 'Complete profile'}
       </button>
