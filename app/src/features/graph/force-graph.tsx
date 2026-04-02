@@ -14,6 +14,11 @@ type ForceGraphProps = {
   onClickNode?: (nodeId: string) => void
 }
 
+const colorScale = d3.scaleLinear<string>()
+  .domain([0, 5, 15])
+  .range(['#71717a', '#f97316', '#dc2626'])
+  .clamp(true)
+
 export function ForceGraph({
   nodes,
   edges,
@@ -74,9 +79,9 @@ export function ForceGraph({
       .selectAll('line')
       .data(simEdges)
       .join('line')
-      .attr('stroke', '#3f3f46')
-      .attr('stroke-opacity', 0.3)
-      .attr('stroke-width', 1)
+      .attr('stroke', '#a1a1aa')
+      .attr('stroke-opacity', 0.5)
+      .attr('stroke-width', 1.5)
 
     // Drag behavior
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,34 +111,80 @@ export function ForceGraph({
       .attr('cursor', 'pointer')
       .call(dragBehavior)
 
-    // Node circles
+    // Node circles - colored by friend count
     nodeGroup
       .append('circle')
-      .attr('r', (d) => (d.isRoot ? 18 : d.isDirectFriend ? 12 : 8))
-      .attr('fill', (d) => (d.isRoot ? '#f97316' : '#71717a'))
+      .attr('r', (d) => {
+        if (d.isRoot) return 20
+        return Math.max(10, Math.min(d.friendCount * 1.5 + 8, 20))
+      })
+      .attr('fill', (d) => {
+        if (d.isRoot) return '#f97316'
+        return colorScale(d.friendCount)
+      })
       .attr('stroke', (d) => (d.isRoot ? '#fdba74' : '#52525b'))
-      .attr('stroke-width', 1.5)
+      .attr('stroke-width', 2)
 
-    // Node labels (only for root and direct friends)
+    // Node labels (show for all nodes, but larger for root and direct friends)
     nodeGroup
-      .filter((d) => d.isRoot || d.isDirectFriend)
       .append('text')
       .text((d) => d.label)
       .attr('text-anchor', 'middle')
-      .attr('dy', '0.35em')
+      .attr('dy', '0.32em')
       .attr('fill', 'white')
-      .attr('font-size', (d) => (d.isRoot ? '12px' : '9px'))
-      .attr('font-weight', '600')
+      .attr('font-size', (d) => {
+        if (d.isRoot) return '16px'
+        if (d.isDirectFriend) return '12px'
+        return '10px'
+      })
+      .attr('font-weight', '700')
       .attr('pointer-events', 'none')
+      .style('text-shadow', '0 0 4px rgba(0,0,0,0.9)')
 
-    // Simple hover tooltip
+    // Simple hover tooltip with connection highlighting
+    let hoveredNodeId: string | null = null
+
     nodeGroup
       .on('mouseenter', (event, d) => {
+        if (hoveredNodeId === d.id) return
+        hoveredNodeId = d.id
+
         const [mx, my] = d3.pointer(event, svgRef.current!)
         setTooltip({ x: mx, y: my, node: d })
+
+        // Highlight connected edges and nodes
+        const connectedIds = new Set<string>([d.id])
+        
+        edgeGroup
+          .attr('stroke-opacity', (e) => {
+            const src = String(typeof e.source === 'object' ? (e.source as SimNode).id : e.source)
+            const tgt = String(typeof e.target === 'object' ? (e.target as SimNode).id : e.target)
+            if (src === d.id || tgt === d.id) {
+              connectedIds.add(src)
+              connectedIds.add(tgt)
+              return 1
+            }
+            return 0.15
+          })
+          .attr('stroke-width', (e) => {
+            const src = String(typeof e.source === 'object' ? (e.source as SimNode).id : e.source)
+            const tgt = String(typeof e.target === 'object' ? (e.target as SimNode).id : e.target)
+            return src === d.id || tgt === d.id ? 2.5 : 1.5
+          })
+
+        nodeGroup.select('circle')
+          .attr('opacity', (n) => connectedIds.has((n as SimNode).id) ? 1 : 0.3)
       })
       .on('mouseleave', () => {
+        hoveredNodeId = null
         setTooltip(null)
+
+        edgeGroup
+          .attr('stroke-opacity', 0.5)
+          .attr('stroke-width', 1.5)
+
+        nodeGroup.select('circle')
+          .attr('opacity', 1)
       })
       .on('click', (_, d) => {
         if (!d.isRoot && onClickNode) {

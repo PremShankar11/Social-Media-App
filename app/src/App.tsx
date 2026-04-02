@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { AuthForms } from './features/auth/auth-forms'
+import { LandingPage } from './features/auth/landing-page'
 import { FriendsPanel } from './features/friends/friends-panel'
 import { GraphPage } from './features/graph/graph-page'
 import { FriendProfilePage } from './features/profile/friend-profile-page'
@@ -56,13 +56,13 @@ function App() {
     busy,
     message,
     profile,
-    session,
     user,
     signIn,
     signOut,
     signUp,
     saveProfile,
   } = useAuth()
+
   const {
     busy: feedBusy,
     message: feedMessage,
@@ -94,8 +94,19 @@ function App() {
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null)
   const [selectedMediaPreview, setSelectedMediaPreview] = useState<string | null>(null)
 
-  const displayName = profile?.display_name ?? 'Your profile'
-  const username = profile?.username ? `@${profile.username}` : ''
+  // Show landing page if not authenticated or no profile
+  if (!user || !profile) {
+    return (
+      <LandingPage
+        busy={busy}
+        onSignIn={signIn}
+        onSignUp={signUp}
+      />
+    )
+  }
+
+  const displayName = profile.display_name ?? 'Your profile'
+  const username = profile.username ? `@${profile.username}` : ''
 
   async function handleCreatePost() {
     const trimmed = postText.trim()
@@ -112,6 +123,10 @@ function App() {
     setSelectedMedia(null)
     setSelectedMediaPreview(null)
     setCurrentView('home')
+  }
+
+  async function handleSignOut() {
+    await signOut()
   }
 
   const navItems: { key: AppView; label: string; icon: (active: boolean) => ReactNode }[] = [
@@ -156,28 +171,24 @@ function App() {
         </div>
 
         <div className="mt-auto">
-          {session ? (
-            <div className="rounded-xl border border-border bg-surface p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-semibold text-white">
-                  {displayName.slice(0, 1)}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white">{displayName}</p>
-                  {username ? <p className="truncate text-xs text-zinc-500">{username}</p> : null}
-                </div>
+          <div className="rounded-xl border border-border bg-surface p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-semibold text-white">
+                {displayName.slice(0, 1)}
               </div>
-              <button
-                type="button"
-                onClick={() => void signOut()}
-                className="mt-3 w-full rounded-lg border border-border py-2 text-xs font-medium text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
-              >
-                Sign out
-              </button>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">{displayName}</p>
+                {username ? <p className="truncate text-xs text-zinc-500">{username}</p> : null}
+              </div>
             </div>
-          ) : (
-            <p className="px-3 text-xs text-zinc-600">Sign in from the Profile tab</p>
-          )}
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              className="mt-3 w-full rounded-lg border border-border py-2 text-xs font-medium text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -185,7 +196,6 @@ function App() {
         <div className="w-full max-w-2xl animate-fade-in px-6 py-8">
           {currentView === 'home' ? (
             <HomePage
-              canPost={Boolean(session)}
               displayName={displayName}
               feedBusy={feedBusy}
               feedMessage={feedMessage}
@@ -202,8 +212,7 @@ function App() {
 
           {currentView === 'connections' ? (
             <ConnectionsPage
-              canUseFriends={Boolean(user && profile)}
-              currentUserId={user?.id ?? null}
+              currentUserId={user.id}
               onOpenFriendProfile={(friendId) => {
                 setSelectedFriendId(friendId)
                 setCurrentView('friend-profile')
@@ -216,22 +225,19 @@ function App() {
               busy={busy}
               message={message}
               profile={profile}
-              session={Boolean(session)}
-              userEmail={user?.email ?? null}
+              userEmail={user.email ?? null}
               friendCount={friendCount}
               postCount={postCount}
               userPosts={userPosts}
               profileBusy={profileBusy}
               profileMessage={profileMessage}
-              onSignIn={signIn}
-              onSignUp={signUp}
               onSaveProfile={saveProfile}
               onDeletePost={handleDeletePost}
               onRefreshProfile={refreshProfile}
             />
           ) : null}
 
-          {currentView === 'graph' && user?.id ? (
+          {currentView === 'graph' ? (
             <GraphPage
               userId={user.id}
               onOpenFriendProfile={(friendId) => {
@@ -241,7 +247,7 @@ function App() {
             />
           ) : null}
 
-          {currentView === 'friend-profile' && user?.id && selectedFriendId ? (
+          {currentView === 'friend-profile' && selectedFriendId ? (
             <FriendProfilePage
               currentUserId={user.id}
               friendId={selectedFriendId}
@@ -262,7 +268,6 @@ function App() {
 }
 
 type HomePageProps = {
-  canPost: boolean
   displayName: string
   feedBusy: boolean
   feedMessage: string | null
@@ -277,7 +282,6 @@ type HomePageProps = {
 }
 
 function HomePage({
-  canPost,
   displayName,
   feedBusy,
   feedMessage,
@@ -331,7 +335,7 @@ function HomePage({
               onChange={(event) => setPostText(event.target.value)}
               className="min-h-[80px] w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-accent/50"
               placeholder="What's on your mind?"
-              disabled={!canPost || feedBusy}
+              disabled={feedBusy}
             />
             {selectedMediaPreview ? (
               <div className="mt-3 overflow-hidden rounded-xl border border-border bg-surface">
@@ -359,12 +363,12 @@ function HomePage({
                   accept="image/*,video/*"
                   className="hidden"
                   onChange={(event) => handleMediaChange(event.target.files)}
-                  disabled={!canPost || feedBusy}
+                  disabled={feedBusy}
                 />
                 <button
                   type="button"
                   onClick={openMediaPicker}
-                  disabled={!canPost || feedBusy}
+                  disabled={feedBusy}
                   className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-zinc-400 transition hover:border-border-hover hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Add media
@@ -382,7 +386,7 @@ function HomePage({
               <button
                 type="button"
                 onClick={() => void onCreatePost()}
-                disabled={!canPost || (!postText.trim() && !selectedMedia) || feedBusy}
+                disabled={(!postText.trim() && !selectedMedia) || feedBusy}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {feedBusy ? 'Posting...' : 'Post'}
@@ -463,27 +467,12 @@ function HomePage({
 }
 
 function ConnectionsPage({
-  canUseFriends,
-  currentUserId,
   onOpenFriendProfile,
+  currentUserId,
 }: {
-  canUseFriends: boolean
-  currentUserId: string | null
   onOpenFriendProfile: (friendId: string) => void
+  currentUserId: string
 }) {
-  if (!canUseFriends || !currentUserId) {
-    return (
-      <div className="space-y-4">
-        <h2 className="font-display text-2xl font-semibold text-white">Connections</h2>
-        <div className="rounded-2xl border border-border bg-surface-raised p-8 text-center">
-          <p className="text-sm text-zinc-400">
-            Sign in and complete your profile to start connecting with people.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-4">
       <h2 className="font-display text-2xl font-semibold text-white">Connections</h2>
@@ -499,15 +488,12 @@ type ProfilePageProps = {
   busy: boolean
   message: string | null
   profile: Parameters<typeof ProfileSetupForm>[0]['profile']
-  session: boolean
   userEmail: string | null
   friendCount: number
   postCount: number
   userPosts: FeedPost[]
   profileBusy: boolean
   profileMessage: string | null
-  onSignIn: (email: string, password: string) => Promise<void>
-  onSignUp: (email: string, password: string) => Promise<void>
   onSaveProfile: (values: {
     username: string
     displayName: string
@@ -521,15 +507,12 @@ function ProfilePage({
   busy,
   message,
   profile,
-  session,
   userEmail,
   friendCount,
   postCount,
   userPosts,
   profileBusy,
   profileMessage,
-  onSignIn,
-  onSignUp,
   onSaveProfile,
   onDeletePost,
 }: ProfilePageProps) {
@@ -549,136 +532,108 @@ function ProfilePage({
     <div className="space-y-6">
       <h2 className="font-display text-2xl font-semibold text-white">Profile</h2>
 
-      {session ? (
-        <>
-          {/* Profile header card */}
-          <div className="rounded-2xl border border-border bg-surface-raised p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-lg font-bold text-white">
-                {(profile?.display_name ?? 'U').slice(0, 1)}
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-white">
-                  {profile?.display_name ?? 'Set up your profile'}
-                </p>
-                {profile?.username ? (
-                  <p className="text-sm text-zinc-500">@{profile.username}</p>
-                ) : null}
-                <p className="mt-0.5 text-xs text-zinc-600">{userEmail}</p>
-              </div>
-            </div>
-            {profile?.bio ? (
-              <p className="mt-4 text-sm leading-relaxed text-zinc-400">{profile.bio}</p>
+      {/* Profile header card */}
+      <div className="rounded-2xl border border-border bg-surface-raised p-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-lg font-bold text-white">
+            {(profile?.display_name ?? 'U').slice(0, 1)}
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-white">
+              {profile?.display_name ?? 'Set up your profile'}
+            </p>
+            {profile?.username ? (
+              <p className="text-sm text-zinc-500">@{profile.username}</p>
             ) : null}
-          </div>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-border bg-surface-raised p-5">
-              <p className="text-2xl font-bold text-white">{friendCount}</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Friends</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-surface-raised p-5">
-              <p className="text-2xl font-bold text-white">{postCount}</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Posts</p>
-            </div>
-          </div>
-
-          {/* Edit toggle + collapsible edit section */}
-          <div className="rounded-2xl border border-border bg-surface-raised p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-white">Profile details</h3>
-              <button
-                type="button"
-                onClick={() => setShowEdit((v) => !v)}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-accent hover:text-accent"
-              >
-                {showEdit ? 'Cancel editing' : 'Edit profile'}
-              </button>
-            </div>
-
-            {showEdit ? (
-              <div className="mt-5 border-t border-border pt-5">
-                <ProfileSetupForm
-                  key={profile?.id ?? 'profile-setup'}
-                  busy={busy}
-                  profile={profile}
-                  onSubmit={async ({ username, displayName, bio }) => {
-                    await onSaveProfile({ username, displayName, bio })
-                    setShowEdit(false)
-                  }}
-                />
-              </div>
-            ) : null}
-          </div>
-
-          {/* User posts section */}
-          <div className="rounded-2xl border border-border bg-surface-raised p-6">
-            <h3 className="mb-4 text-base font-semibold text-white">Your posts</h3>
-
-            {userPosts.length === 0 ? (
-              <p className="text-sm text-zinc-600">You haven't posted anything yet.</p>
-            ) : (
-              <div className="space-y-4">
-                {userPosts.map((post) => (
-                  <article
-                    key={post.id}
-                    className="rounded-xl border border-border bg-surface p-4"
-                  >
-                    <p className="text-sm leading-relaxed text-zinc-300">{post.text}</p>
-
-                    {post.media ? (
-                      <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
-                        {post.media.type === 'video' ? (
-                          <video src={post.media.url} controls className="max-h-60 w-full object-cover" />
-                        ) : (
-                          <img src={post.media.url} alt="Post media" className="max-h-60 w-full object-cover" />
-                        )}
-                      </div>
-                    ) : null}
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-zinc-600">{post.time}</p>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(post.id)}
-                        disabled={profileBusy || deletingPostId === post.id}
-                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-rose-500/50 hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {deletingPostId === post.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-surface-raised p-6">
-            <h3 className="mb-4 text-base font-semibold text-white">Sign in</h3>
-            <AuthForms
-              mode="sign-in"
-              busy={busy}
-              onSubmit={async ({ email, password }) => {
-                await onSignIn(email, password)
-              }}
-            />
-          </div>
-
-          <div className="rounded-2xl border border-border bg-surface-raised p-6">
-            <h3 className="mb-4 text-base font-semibold text-white">Create account</h3>
-            <AuthForms
-              mode="sign-up"
-              busy={busy}
-              onSubmit={async ({ email, password }) => {
-                await onSignUp(email, password)
-              }}
-            />
+            <p className="mt-0.5 text-xs text-zinc-600">{userEmail}</p>
           </div>
         </div>
-      )}
+        {profile?.bio ? (
+          <p className="mt-4 text-sm leading-relaxed text-zinc-400">{profile.bio}</p>
+        ) : null}
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-border bg-surface-raised p-5">
+          <p className="text-2xl font-bold text-white">{friendCount}</p>
+          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Friends</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface-raised p-5">
+          <p className="text-2xl font-bold text-white">{postCount}</p>
+          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-zinc-500">Posts</p>
+        </div>
+      </div>
+
+      {/* Edit toggle + collapsible edit section */}
+      <div className="rounded-2xl border border-border bg-surface-raised p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-white">Profile details</h3>
+          <button
+            type="button"
+            onClick={() => setShowEdit((v) => !v)}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-accent hover:text-accent"
+          >
+            {showEdit ? 'Cancel editing' : 'Edit profile'}
+          </button>
+        </div>
+
+        {showEdit ? (
+          <div className="mt-5 border-t border-border pt-5">
+            <ProfileSetupForm
+              key={profile?.id ?? 'profile-setup'}
+              busy={busy}
+              profile={profile}
+              onSubmit={async ({ username, displayName, bio }) => {
+                await onSaveProfile({ username, displayName, bio })
+                setShowEdit(false)
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {/* User posts section */}
+      <div className="rounded-2xl border border-border bg-surface-raised p-6">
+        <h3 className="mb-4 text-base font-semibold text-white">Your posts</h3>
+
+        {userPosts.length === 0 ? (
+          <p className="text-sm text-zinc-600">You haven't posted anything yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {userPosts.map((post) => (
+              <article
+                key={post.id}
+                className="rounded-xl border border-border bg-surface p-4"
+              >
+                <p className="text-sm leading-relaxed text-zinc-300">{post.text}</p>
+
+                {post.media ? (
+                  <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+                    {post.media.type === 'video' ? (
+                      <video src={post.media.url} controls className="max-h-60 w-full object-cover" />
+                    ) : (
+                      <img src={post.media.url} alt="Post media" className="max-h-60 w-full object-cover" />
+                    )}
+                  </div>
+                ) : null}
+
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="text-xs text-zinc-600">{post.time}</p>
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(post.id)}
+                    disabled={profileBusy || deletingPostId === post.id}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-rose-500/50 hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {deletingPostId === post.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
 
       {(message || profileMessage) ? (
         <div className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm text-accent">

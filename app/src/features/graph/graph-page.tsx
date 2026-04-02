@@ -54,6 +54,10 @@ export function GraphPage({ userId, onOpenFriendProfile }: GraphPageProps) {
 
   const directFriendCount = nodes.filter(n => n.isDirectFriend).length
   const totalNodeCount = nodes.length
+  const avgFriendCount = Math.round(
+    nodes.reduce((sum, n) => sum + n.friendCount, 0) / nodes.length
+  )
+  const maxFriendCount = Math.max(...nodes.map(n => n.friendCount))
 
   return (
     <div className="space-y-4">
@@ -61,10 +65,12 @@ export function GraphPage({ userId, onOpenFriendProfile }: GraphPageProps) {
         Friend Graph
       </h2>
 
-      {/* Simple stats */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatBox label="Direct Friends" value={directFriendCount} />
         <StatBox label="Extended Network" value={totalNodeCount - 1} />
+        <StatBox label="Avg Friends" value={avgFriendCount} />
+        <StatBox label="Most Connected" value={maxFriendCount} />
       </div>
 
       {/* Graph canvas */}
@@ -78,9 +84,29 @@ export function GraphPage({ userId, onOpenFriendProfile }: GraphPageProps) {
         </div>
       </div>
 
-      <p className="text-xs text-zinc-600">
-        Drag nodes to rearrange · Scroll to zoom · Click to view profile
-      </p>
+      {/* Legend */}
+      <div className="rounded-2xl border border-border bg-surface-raised p-4">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          Legend
+        </h3>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 rounded-full bg-orange-500" />
+            <span className="text-zinc-400">You (root node)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-4 w-4 rounded-full bg-orange-400" />
+            <span className="text-zinc-400">Few friends (0-5)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 rounded-full bg-red-600" />
+            <span className="text-zinc-400">Many friends (15+)</span>
+          </div>
+          <p className="mt-3 text-zinc-600">
+            Node size represents friend count. Hover to highlight connections. Click to view profile.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

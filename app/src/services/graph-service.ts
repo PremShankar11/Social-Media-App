@@ -198,8 +198,11 @@ export async function fetchGraphData(
   const nodes: GraphNode[] = Array.from(allRelevantIds).map((id) => {
     const profile = profilesById.get(id)
     const neighbors = adjacencyMap.get(id) ?? new Set()
-    const mutualWithRoot = [...neighbors].filter((n) => rootNeighbors.has(n)).length
     const actualFriendCount = friendCountsMap.get(id) ?? 0
+    
+    // Mutual connections = friends that both root and this node have
+    // This is the intersection of their neighbor sets
+    const mutualWithRoot = [...neighbors].filter((n) => rootNeighbors.has(n)).length
 
     return {
       id,
@@ -222,7 +225,21 @@ export async function fetchGraphData(
     edge.weight = [...sourceNeighbors].filter((n) => targetNeighbors.has(n)).length
   }
 
-  console.log('[DEBUG] fetchGraphData complete. Nodes:', nodes.map(n => ({ id: n.id, displayName: n.displayName, friendCount: n.friendCount })))
+  console.log('[DEBUG] fetchGraphData complete. Nodes:', nodes.map(n => {
+    const rootNeighborsArray = [...rootNeighbors]
+    const nodeNeighborsArray = [...(adjacencyMap.get(n.id) ?? new Set())]
+    const mutual = nodeNeighborsArray.filter(neighbor => rootNeighbors.has(neighbor))
+    return {
+      id: n.id,
+      displayName: n.displayName,
+      friendCount: n.friendCount,
+      mutualConnections: n.mutualConnections,
+      isDirectFriend: n.isDirectFriend,
+      nodeNeighbors: nodeNeighborsArray.length,
+      rootNeighbors: rootNeighborsArray.length,
+      mutualFriends: mutual.map(m => nodes.find(node => node.id === m)?.displayName).filter(Boolean)
+    }
+  }))
 
   return { data: { nodes, edges }, error: null }
 }

@@ -30,25 +30,8 @@ export async function getFriendProfile(
   currentUserId: string,
   friendId: string,
 ) {
-  // Check if users are friends using the unique constraint pattern
-  const friendshipCheck = await supabase
-    .from('friendships')
-    .select('id')
-    .eq('user_one_id', currentUserId < friendId ? currentUserId : friendId)
-    .eq('user_two_id', currentUserId < friendId ? friendId : currentUserId)
-    .maybeSingle()
-
-  if (friendshipCheck.error) {
-    return { data: null, error: friendshipCheck.error }
-  }
-
-  if (!friendshipCheck.data) {
-    return {
-      data: null,
-      error: new Error('This user is no longer in your friends list.'),
-    }
-  }
-
+  // Just fetch the profile without checking friendship
+  // This allows viewing profiles of anyone in the network (including 2nd degree friends from the graph)
   const profileResult = await supabase
     .from('profiles')
     .select('*')
@@ -58,7 +41,7 @@ export async function getFriendProfile(
   if (profileResult.error || !profileResult.data) {
     return {
       data: null,
-      error: profileResult.error ?? new Error('Friend profile not found.'),
+      error: profileResult.error ?? new Error('Profile not found.'),
     }
   }
 
