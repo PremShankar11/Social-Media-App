@@ -137,14 +137,14 @@ export async function fetchPostComments(postId: string, userId: string) {
     return { data: null, error }
   }
 
-  // Fetch author profiles
+  // Fetch author profiles with avatar_url
   const authorIds = [...new Set(comments.map((c) => c.author_id))]
-  let profilesMap = new Map<string, { display_name: string; username: string }>()
+  let profilesMap = new Map<string, { display_name: string; username: string; avatar_url: string | null }>()
 
   if (authorIds.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name, username')
+      .select('id, display_name, username, avatar_url')
       .in('id', authorIds)
 
     if (profiles) {
@@ -181,6 +181,7 @@ export async function fetchPostComments(postId: string, userId: string) {
       author_id: c.author_id,
       author_name: profile?.display_name ?? 'Unknown',
       author_username: profile?.username ?? 'unknown',
+      author_avatar: profile?.avatar_url ?? null,
       text: c.text,
       likes_count: likeCountMap.get(c.id) ?? 0,
       replies_count: replyCountMap.get(c.id) ?? 0,
@@ -233,12 +234,12 @@ export async function fetchCommentReplies(commentId: string, userId: string) {
   }
 
   const authorIds = [...new Set(replies.map((r) => r.author_id))]
-  let profilesMap = new Map<string, { display_name: string; username: string }>()
+  let profilesMap = new Map<string, { display_name: string; username: string; avatar_url: string | null }>()
 
   if (authorIds.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name, username')
+      .select('id, display_name, username, avatar_url')
       .in('id', authorIds)
 
     if (profiles) {
@@ -267,6 +268,7 @@ export async function fetchCommentReplies(commentId: string, userId: string) {
       author_id: r.author_id,
       author_name: profile?.display_name ?? 'Unknown',
       author_username: profile?.username ?? 'unknown',
+      author_avatar: profile?.avatar_url ?? null,
       text: r.text,
       likes_count: likeCountMap.get(r.id) ?? 0,
       user_liked: userLikedSet.has(r.id),
@@ -321,12 +323,12 @@ export async function fetchFriendsFeedPosts(userId: string) {
 
   // 3. Fetch profiles
   const authorIdSet = [...new Set(posts.map((p) => p.author_id))]
-  let profilesMap = new Map<string, { display_name: string; username: string }>()
+  let profilesMap = new Map<string, { display_name: string; username: string; avatar_url: string | null }>()
 
   if (authorIdSet.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name, username')
+      .select('id, display_name, username, avatar_url')
       .in('id', authorIdSet)
 
     if (profiles) {
@@ -393,6 +395,7 @@ export async function fetchFriendsFeedPosts(userId: string) {
       comments: commentCountMap.get(post.id) ?? 0,
       user_liked: userLikedSet.has(post.id),
       media: mediaMap.get(post.id) ?? null,
+      author_avatar: profile?.avatar_url ?? null,
       created_at: post.created_at,
     }
   })

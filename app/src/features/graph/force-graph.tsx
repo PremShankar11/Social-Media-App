@@ -125,6 +125,55 @@ export function ForceGraph({
       .attr('stroke', (d) => (d.isRoot ? '#fdba74' : '#52525b'))
       .attr('stroke-width', 2)
 
+    // Add avatar images or fallback to initials
+    nodeGroup.each(function (d) {
+      const g = d3.select(this)
+      const radius = d.isRoot ? 20 : Math.max(10, Math.min(d.friendCount * 1.5 + 8, 20))
+
+      if (d.avatarUrl) {
+        // Add clipped image
+        const clipId = `clip-${d.id}`
+        
+        // Create defs if not exists
+        let defs = svg.select('defs')
+        if (defs.empty()) {
+          defs = svg.append('defs')
+        }
+
+        // Add clip path
+        defs
+          .append('clipPath')
+          .attr('id', clipId)
+          .append('circle')
+          .attr('r', radius)
+
+        // Add image
+        g.append('image')
+          .attr('href', d.avatarUrl)
+          .attr('x', -radius)
+          .attr('y', -radius)
+          .attr('width', radius * 2)
+          .attr('height', radius * 2)
+          .attr('clip-path', `url(#${clipId})`)
+          .attr('preserveAspectRatio', 'xMidYMid slice')
+      } else {
+        // Fallback to text label
+        g.append('text')
+          .text(d.label)
+          .attr('text-anchor', 'middle')
+          .attr('dy', '0.32em')
+          .attr('fill', 'white')
+          .attr('font-size', (d) => {
+            if (d.isRoot) return '16px'
+            if (d.isDirectFriend) return '12px'
+            return '10px'
+          })
+          .attr('font-weight', '700')
+          .attr('pointer-events', 'none')
+          .style('text-shadow', '0 0 4px rgba(0,0,0,0.9)')
+      }
+    })
+
     // Node labels (show for all nodes, but larger for root and direct friends)
     nodeGroup
       .append('text')
@@ -140,6 +189,7 @@ export function ForceGraph({
       .attr('font-weight', '700')
       .attr('pointer-events', 'none')
       .style('text-shadow', '0 0 4px rgba(0,0,0,0.9)')
+      .style('display', (d) => d.avatarUrl ? 'none' : 'block')
 
     // Simple hover tooltip with connection highlighting
     let hoveredNodeId: string | null = null

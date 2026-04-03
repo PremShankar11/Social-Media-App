@@ -1,6 +1,5 @@
 import { useGraphData } from '../../hooks/use-graph-data'
 import { ForceGraph } from './force-graph'
-import type { GraphNode } from '../../types/domain'
 
 type GraphPageProps = {
   userId: string
@@ -13,6 +12,7 @@ export function GraphPage({ userId, onOpenFriendProfile }: GraphPageProps) {
     edges,
     busy,
     error,
+    refresh,
   } = useGraphData({ userId, enabled: true })
 
   if (busy && nodes.length === 0) {
@@ -61,9 +61,19 @@ export function GraphPage({ userId, onOpenFriendProfile }: GraphPageProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-display text-2xl font-semibold text-white">
-        Friend Graph
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-2xl font-semibold text-white">
+          Friend Graph
+        </h2>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={busy}
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

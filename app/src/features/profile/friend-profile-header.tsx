@@ -22,9 +22,17 @@ export function FriendProfileHeader({
         </button>
 
         <div className="-mt-2 flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-secondary text-lg font-bold text-white shadow-glow ring-4 ring-surface-raised">
-            {(profile?.display_name ?? 'U').slice(0, 1)}
-          </div>
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={profile.display_name}
+              className="h-14 w-14 rounded-2xl object-cover ring-4 ring-surface-raised"
+            />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-secondary text-lg font-bold text-white shadow-glow ring-4 ring-surface-raised">
+              {(profile?.display_name ?? 'U').slice(0, 1)}
+            </div>
+          )}
           <div>
             <p className="text-lg font-bold text-text-primary">
               {profile?.display_name ?? 'Unknown friend'}

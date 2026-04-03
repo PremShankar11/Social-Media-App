@@ -13,6 +13,7 @@ export type ProfileInsert = {
   username: string
   display_name: string
   bio: string
+  avatar_url?: string | null
 }
 
 export type PublicProfile = Pick<
@@ -62,6 +63,7 @@ export type FeedPost = {
   comments: number
   user_liked: boolean
   media?: FeedPostMedia | null
+  author_avatar?: string | null
   isLocalOnly?: boolean
   created_at?: string
 }
@@ -99,6 +101,7 @@ export type Comment = {
   author_id: string
   author_name: string
   author_username: string
+  author_avatar: string | null
   text: string
   likes_count: number
   replies_count: number
@@ -112,6 +115,7 @@ export type Reply = {
   author_id: string
   author_name: string
   author_username: string
+  author_avatar: string | null
   text: string
   likes_count: number
   user_liked: boolean

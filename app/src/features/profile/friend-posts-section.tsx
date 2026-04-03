@@ -34,9 +34,17 @@ export function FriendPostsSection({
         >
           <div className="p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-sm font-bold text-accent">
-                {post.author.slice(0, 1)}
-              </div>
+              {post.author_avatar ? (
+                <img
+                  src={post.author_avatar}
+                  alt={post.author}
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-sm font-bold text-accent">
+                  {post.author.slice(0, 1)}
+                </div>
+              )}
               <div>
                 <p className="text-sm font-semibold text-text-primary">{post.author}</p>
                 <p className="text-xs text-text-muted">

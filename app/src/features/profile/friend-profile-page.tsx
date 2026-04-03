@@ -88,9 +88,17 @@ export function FriendProfilePage({
                 onClick={() => onOpenFriend(friend.id)}
                 className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-3.5 text-left transition-all hover:border-border-hover"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-xs font-bold text-accent">
-                  {friend.display_name.slice(0, 1)}
-                </div>
+                {friend.avatar_url ? (
+                  <img
+                    src={friend.avatar_url}
+                    alt={friend.display_name}
+                    className="h-9 w-9 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-xs font-bold text-accent">
+                    {friend.display_name.slice(0, 1)}
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-semibold text-text-primary">{friend.display_name}</p>
                   <p className="text-xs text-text-muted">@{friend.username}</p>

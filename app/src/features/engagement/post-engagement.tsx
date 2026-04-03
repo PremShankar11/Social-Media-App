@@ -261,11 +261,19 @@ function CommentItem({
 
   return (
     <div>
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         {/* Avatar */}
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondary/20 to-accent/20 text-[11px] font-bold text-secondary">
-          {comment.author_name.slice(0, 1)}
-        </div>
+        {comment.author_avatar ? (
+          <img
+            src={comment.author_avatar}
+            alt={comment.author_name}
+            className="h-7 w-7 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondary/20 to-accent/20 text-[10px] font-bold text-secondary">
+            {comment.author_name.slice(0, 1)}
+          </div>
+        )}
 
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
@@ -277,7 +285,7 @@ function CommentItem({
           <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">{comment.text}</p>
 
           {/* Comment actions */}
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-1.5 flex items-center gap-3">
             <button
               type="button"
               onClick={onToggleLike}
@@ -385,9 +393,18 @@ function ReplyItem({
 }) {
   return (
     <div className="flex items-start gap-2.5">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-muted text-[9px] font-bold text-text-secondary">
-        {reply.author_name.slice(0, 1)}
-      </div>
+      {/* Avatar */}
+      {reply.author_avatar ? (
+        <img
+          src={reply.author_avatar}
+          alt={reply.author_name}
+          className="h-6 w-6 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-secondary/20 to-accent/20 text-[9px] font-bold text-secondary">
+          {reply.author_name.slice(0, 1)}
+        </div>
+      )}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">

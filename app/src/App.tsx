@@ -5,12 +5,13 @@ import { PostEngagement } from './features/engagement/post-engagement'
 import { FriendsPanel } from './features/friends/friends-panel'
 import { GraphPage } from './features/graph/graph-page'
 import { FriendProfilePage } from './features/profile/friend-profile-page'
+import { AvatarUpload } from './features/profile/avatar-upload'
 import { ProfileSetupForm } from './features/profile/profile-setup-form'
 import { useAuth } from './hooks/use-auth'
 import { useFeed } from './hooks/use-feed'
 import { useConnections } from './hooks/use-connections'
 import { useProfile } from './hooks/use-profile'
-import type { FeedPost } from './types/domain'
+import type { FeedPost, ProfileRecord } from './types/domain'
 
 type AppView = 'home' | 'connections' | 'graph' | 'profile' | 'friend-profile'
 
@@ -185,9 +186,17 @@ function App() {
         <div className="mt-auto">
           <div className="rounded-2xl bg-surface-overlay p-3.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-bold text-white shadow-sm">
-                {displayName.slice(0, 1)}
-              </div>
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  className="h-10 w-10 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-bold text-white shadow-sm">
+                  {displayName.slice(0, 1)}
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-text-primary">{displayName}</p>
                 {username ? <p className="truncate text-xs text-text-muted">{username}</p> : null}
@@ -210,6 +219,7 @@ function App() {
             <HomePage
               currentUserId={user.id}
               displayName={displayName}
+              profile={profile}
               feedBusy={feedBusy}
               feedMessage={feedMessage}
               postText={postText}
@@ -284,6 +294,7 @@ function App() {
 type HomePageProps = {
   currentUserId: string
   displayName: string
+  profile: ProfileRecord | null
   feedBusy: boolean
   feedMessage: string | null
   postText: string
@@ -300,6 +311,7 @@ type HomePageProps = {
 function HomePage({
   currentUserId,
   displayName,
+  profile,
   feedBusy,
   feedMessage,
   postText,
@@ -344,9 +356,17 @@ function HomePage({
 
       <div className="card p-6">
         <div className="flex gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-bold text-white shadow-sm">
-            {displayName.slice(0, 1)}
-          </div>
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={displayName}
+              className="h-11 w-11 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-pink-500 text-sm font-bold text-white shadow-sm">
+              {displayName.slice(0, 1)}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <textarea
               value={postText}
@@ -435,9 +455,17 @@ function HomePage({
             >
               <div className="p-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-sm font-bold text-accent">
-                    {post.author.slice(0, 1)}
-                  </div>
+                  {post.author_avatar ? (
+                    <img
+                      src={post.author_avatar}
+                      alt={post.author}
+                      className="h-10 w-10 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/15 to-secondary/15 text-sm font-bold text-accent">
+                      {post.author.slice(0, 1)}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-semibold text-text-primary">{post.author}</p>
                     <p className="text-xs text-text-muted">
@@ -513,6 +541,7 @@ type ProfilePageProps = {
     username: string
     displayName: string
     bio: string
+    avatarUrl?: string
   }) => Promise<void>
   onDeletePost: (postId: string) => Promise<void>
   onRefreshProfile: () => Promise<void>
@@ -549,12 +578,35 @@ function ProfilePage({
 
       {/* Profile header card */}
       <div className="card overflow-hidden">
-        <div className="h-20 bg-gradient-to-r from-accent via-secondary to-[#ff5500]" />
         <div className="p-6">
-          <div className="-mt-14 flex items-end gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-secondary text-xl font-bold text-white shadow-glow-accent ring-4 ring-surface-raised">
-              {(profile?.display_name ?? 'U').slice(0, 1)}
-            </div>
+          <div className="flex items-end gap-4">
+            <AvatarUpload
+              currentAvatarUrl={profile?.avatar_url ?? null}
+              displayName={profile?.display_name ?? 'U'}
+              onAvatarUpdated={async (avatarUrl) => {
+                console.log('[App.onAvatarUpdated] Avatar updated with URL:', avatarUrl)
+                // The profile state will be updated by the useAuth hook's profile loading effect
+                // Just need to trigger a refresh by calling saveProfile with current values
+                // This will cause the profile to be re-fetched and updated
+                if (profile) {
+                  console.log('[App.onAvatarUpdated] Current profile:', profile)
+                  console.log('[App.onAvatarUpdated] Triggering profile refresh after avatar update')
+                  console.log('[App.onAvatarUpdated] Calling onSaveProfile with:', {
+                    username: profile.username,
+                    displayName: profile.display_name,
+                    bio: profile.bio,
+                    avatarUrl,
+                  })
+                  await onSaveProfile({
+                    username: profile.username,
+                    displayName: profile.display_name,
+                    bio: profile.bio,
+                    avatarUrl,
+                  })
+                  console.log('[App.onAvatarUpdated] onSaveProfile completed')
+                }
+              }}
+            />
             <div className="mb-1">
               <p className="text-lg font-bold text-text-primary">
                 {profile?.display_name ?? 'Set up your profile'}
@@ -602,8 +654,8 @@ function ProfilePage({
               key={profile?.id ?? 'profile-setup'}
               busy={busy}
               profile={profile}
-              onSubmit={async ({ username, displayName, bio }) => {
-                await onSaveProfile({ username, displayName, bio })
+              onSubmit={async ({ username, displayName, bio, avatarUrl }) => {
+                await onSaveProfile({ username, displayName, bio, avatarUrl })
                 setShowEdit(false)
               }}
             />
