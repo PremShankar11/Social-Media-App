@@ -5,16 +5,23 @@ import { authSchema } from './schemas'
 type AuthFormsProps = {
   mode: 'sign-in' | 'sign-up'
   busy: boolean
+  cooldownSeconds?: number
+  serverMessage?: string | null
   onSubmit: (values: { email: string; password: string }) => Promise<void>
 }
 
-export function AuthForms({ mode, busy, onSubmit }: AuthFormsProps) {
+export function AuthForms({ mode, busy, cooldownSeconds = 0, serverMessage, onSubmit }: AuthFormsProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (busy || submitting || cooldownSeconds > 0) {
+      return
+    }
 
     const parsed = authSchema.safeParse({
       email: email.trim().toLowerCase(),
@@ -27,7 +34,12 @@ export function AuthForms({ mode, busy, onSubmit }: AuthFormsProps) {
     }
 
     setError(null)
-    await onSubmit(parsed.data)
+    setSubmitting(true)
+    try {
+      await onSubmit(parsed.data)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -40,7 +52,10 @@ export function AuthForms({ mode, busy, onSubmit }: AuthFormsProps) {
           id={`${mode}-email`}
           type="email"
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => {
+            setEmail(event.target.value)
+            setError(null)
+          }}
           className="input-base"
           placeholder="you@example.com"
           autoComplete="email"
@@ -55,7 +70,10 @@ export function AuthForms({ mode, busy, onSubmit }: AuthFormsProps) {
           id={`${mode}-password`}
           type="password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={(event) => {
+            setPassword(event.target.value)
+            setError(null)
+          }}
           className="input-base"
           placeholder="At least 6 characters"
           autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
@@ -68,12 +86,24 @@ export function AuthForms({ mode, busy, onSubmit }: AuthFormsProps) {
         </p>
       )}
 
+      {!error && serverMessage ? (
+        <p className="rounded-xl border border-accent/20 bg-accent-soft px-4 py-2.5 text-xs font-medium text-accent">
+          {serverMessage}
+        </p>
+      ) : null}
+
       <button
         type="submit"
-        disabled={busy}
+        disabled={busy || submitting || cooldownSeconds > 0}
         className="btn-primary w-full"
       >
-        {busy ? 'Please wait...' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
+        {cooldownSeconds > 0
+          ? `Try again in ${cooldownSeconds}s`
+          : busy || submitting
+            ? 'Please wait...'
+            : mode === 'sign-in'
+              ? 'Sign in'
+              : 'Create account'}
       </button>
     </form>
   )

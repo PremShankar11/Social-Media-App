@@ -3,11 +3,13 @@ import { AuthForms } from './auth-forms'
 
 type LandingPageProps = {
   busy: boolean
+  message: string | null
+  cooldownSeconds: number
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string) => Promise<void>
 }
 
-export function LandingPage({ busy, onSignIn, onSignUp }: LandingPageProps) {
+export function LandingPage({ busy, message, cooldownSeconds, onSignIn, onSignUp }: LandingPageProps) {
   const [showAuth, setShowAuth] = useState(false)
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in')
 
@@ -78,6 +80,8 @@ export function LandingPage({ busy, onSignIn, onSignUp }: LandingPageProps) {
               <AuthForms
                 mode={authMode}
                 busy={busy}
+                cooldownSeconds={cooldownSeconds}
+                serverMessage={message}
                 onSubmit={async (values) => {
                   if (authMode === 'sign-in') {
                     await onSignIn(values.email, values.password)

@@ -57,6 +57,7 @@ function App() {
   const {
     busy,
     message,
+    cooldownSeconds,
     profile,
     user,
     signIn,
@@ -97,14 +98,59 @@ function App() {
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null)
   const [selectedMediaPreview, setSelectedMediaPreview] = useState<string | null>(null)
 
-  // Show landing page if not authenticated or no profile
-  if (!user || !profile) {
+  // If not authenticated, show the auth landing page.
+  if (!user) {
     return (
       <LandingPage
         busy={busy}
+        message={message}
+        cooldownSeconds={cooldownSeconds}
         onSignIn={signIn}
         onSignUp={signUp}
       />
+    )
+  }
+
+  // If authenticated but profile doesn't exist yet, force a one-time profile setup.
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-surface px-6 py-12">
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-8">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15">
+              <span className="text-xl font-bold text-accent">C</span>
+            </div>
+            <h1 className="font-display text-3xl font-bold text-text-primary">Set up your profile</h1>
+            <p className="mt-2 text-sm text-text-secondary">
+              Choose a username and display name to start using Circle.
+            </p>
+          </div>
+
+          {message ? (
+            <p className="mb-5 rounded-xl border border-accent/20 bg-accent-soft px-4 py-3 text-sm font-medium text-accent">
+              {message}
+            </p>
+          ) : null}
+
+          <div className="glass p-8">
+            <ProfileSetupForm
+              busy={busy}
+              profile={null}
+              onSubmit={async ({ username, displayName, bio, avatarUrl }) => {
+                await saveProfile({ username, displayName, bio, avatarUrl })
+              }}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="mt-6 w-full rounded-xl border border-border bg-surface py-2.5 text-sm font-medium text-text-muted transition-all hover:border-border-hover hover:text-text-primary"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
     )
   }
 

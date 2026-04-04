@@ -339,7 +339,7 @@ export async function fetchFriendsFeedPosts(userId: string) {
   // 4. Fetch media
   const postIds = posts.map((p) => p.id)
 
-  let mediaMap = new Map<string, { type: 'image' | 'video'; url: string }>()
+  const mediaMap = new Map<string, { type: 'image' | 'video'; url: string }>()
 
   if (postIds.length > 0) {
     const { data: mediaRecords } = await supabase

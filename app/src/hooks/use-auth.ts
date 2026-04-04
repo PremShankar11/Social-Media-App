@@ -7,6 +7,7 @@ import type { ProfileRecord } from '../types/domain'
 type UseAuthResult = {
   busy: boolean
   message: string | null
+  cooldownSeconds: number
   profile: ProfileRecord | null
   session: Session | null
   user: User | null
@@ -27,6 +28,31 @@ export function useAuth(): UseAuthResult {
   const [profile, setProfile] = useState<ProfileRecord | null>(null)
   const [busy, setBusy] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null)
+  const [clock, setClock] = useState(() => Date.now())
+
+  const cooldownSeconds =
+    cooldownUntil && cooldownUntil > clock
+      ? Math.ceil((cooldownUntil - clock) / 1000)
+      : 0
+
+  useEffect(() => {
+    if (!cooldownUntil) {
+      return
+    }
+
+    const id = window.setInterval(() => {
+      const now = Date.now()
+      setClock(now)
+      if (cooldownUntil <= now) {
+        setCooldownUntil(null)
+      }
+    }, 500)
+
+    return () => {
+      window.clearInterval(id)
+    }
+  }, [cooldownUntil])
 
   useEffect(() => {
     let mounted = true
@@ -86,7 +112,7 @@ export function useAuth(): UseAuthResult {
         setMessage(error.message)
         setProfile(null)
       } else {
-        setProfile(data)
+        setProfile(data ?? null)
       }
 
       setBusy(false)
@@ -99,35 +125,98 @@ export function useAuth(): UseAuthResult {
     }
   }, [user])
 
-  async function signIn(email: string, password: string) {
-    setBusy(true)
-    setMessage(null)
+  function startCooldown(seconds: number) {
+    setCooldownUntil(Date.now() + seconds * 1000)
+  }
 
+  async function performSignIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
+      if (error.status === 429) {
+        startCooldown(30)
+        setMessage('Too many attempts. Please wait 30 seconds and try again.')
+        return { ok: false as const, reason: 'rate_limit' as const }
+      }
+
       setMessage(error.message)
+      return { ok: false as const, reason: 'error' as const }
     }
+
+    return { ok: true as const, reason: 'ok' as const }
+  }
+
+  async function signIn(email: string, password: string) {
+    if (busy) {
+      return
+    }
+
+    if (cooldownSeconds > 0) {
+      setMessage(`Too many attempts. Please wait ${cooldownSeconds}s and try again.`)
+      return
+    }
+
+    setBusy(true)
+    setMessage(null)
+
+    await performSignIn(email, password)
 
     setBusy(false)
   }
 
   async function signUp(email: string, password: string) {
+    if (busy) {
+      return
+    }
+
+    if (cooldownSeconds > 0) {
+      setMessage(`Too many attempts. Please wait ${cooldownSeconds}s and try again.`)
+      return
+    }
+
     setBusy(true)
     setMessage(null)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     })
 
     if (error) {
-      setMessage(error.message)
-    } else {
-      setMessage('Account created. Check your email if Supabase email confirmation is enabled.')
+      if (error.status === 429) {
+        startCooldown(30)
+        setMessage('Too many attempts. Please wait 30 seconds and try again.')
+      } else {
+        setMessage(error.message)
+      }
+      setBusy(false)
+      return
+    }
+
+    // If Supabase is configured for instant sign-in, we may already have a session.
+    // Otherwise, try signing in immediately (works when email confirmation is disabled).
+    if (!data.session) {
+      const signInResult = await performSignIn(email, password)
+      if (!signInResult.ok) {
+        if (signInResult.reason === 'rate_limit') {
+          setBusy(false)
+          return
+        }
+
+        const currentSession = await supabase.auth.getSession()
+        const userId = currentSession.data.session?.user?.id ?? null
+
+        if (!userId) {
+          setMessage(
+            'Account created, but your Supabase Auth settings currently require confirmation before sign-in. Disable email confirmation in Supabase Auth settings to allow instant login.',
+          )
+        }
+        setBusy(false)
+        return
+      }
     }
 
     setBusy(false)
@@ -136,6 +225,7 @@ export function useAuth(): UseAuthResult {
   async function signOut() {
     setBusy(true)
     setMessage(null)
+    setCooldownUntil(null)
     const { error } = await supabase.auth.signOut()
 
     if (error) {
@@ -200,6 +290,7 @@ export function useAuth(): UseAuthResult {
   return {
     busy,
     message,
+    cooldownSeconds,
     profile,
     session,
     user,
