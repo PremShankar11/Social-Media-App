@@ -1,4 +1,4 @@
-# Circle (IP Mini Project)
+# Circle (A Social Media App)
 
 **Circle** is a friends-first social app prototype focused on real connections instead of addictive engagement patterns:
 
